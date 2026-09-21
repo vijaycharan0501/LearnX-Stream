@@ -98,12 +98,12 @@ class RecommendedRepresentation {
 
   static String _normalizeType(String val) {
     final clean = val.toLowerCase().replaceAll('-', '_').replaceAll(' ', '_');
-    if (clean.contains('simul')) return 'simulation';
-    if (clean.contains('concept') || clean.contains('map')) return 'conceptMap';
-    if (clean.contains('work') || clean.contains('process')) return 'workflow';
+    if (clean.contains('simul') || clean.contains('relationship')) return 'simulation';
+    if (clean.contains('concept') || clean.contains('map') || clean.contains('hierarchy')) return 'conceptMap';
+    if (clean.contains('work') || clean.contains('process') || clean.contains('sequence')) return 'workflow';
     if (clean.contains('step')) return 'stepByStep';
     if (clean.contains('chat') || clean.contains('guide')) return 'guidedChat';
-    if (clean.contains('diag') || clean.contains('interactive_diagram')) return 'interactive_diagram';
+    if (clean.contains('diag') || clean.contains('interactive_diagram') || clean.contains('comparison')) return 'interactive_diagram';
     return 'visualExplanation';
   }
 

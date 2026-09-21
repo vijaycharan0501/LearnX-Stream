@@ -148,107 +148,121 @@ class AIService:
         # Local educational analysis engine
         return self._generate_fallback_analysis(clean_title, clean_text)
 
+    def _normalize_vis_type(self, raw_type: str) -> str:
+        t = (raw_type or "").lower().strip().replace("-", "_").replace(" ", "_")
+        if t in ["simulation", "relationship", "formula", "circuit"]:
+            return "simulation"
+        if t in ["conceptmap", "concept_map", "hierarchy", "tree", "taxonomy"]:
+            return "conceptMap"
+        if t in ["workflow", "process", "sequence", "protocol", "cycle"]:
+            return "workflow"
+        if t in ["diagram", "interactive_diagram", "comparison", "table", "venn"]:
+            return "diagram"
+        if t in ["stepbystep", "step_by_step", "stages"]:
+            return "stepByStep"
+        if t in ["guidedchat", "guided_chat", "socratic"]:
+            return "guidedChat"
+        if t in ["algorithm", "visualexplanation", "visual_explanation", "interactive_visualization", "genericvisualexplanation"]:
+            return "visualExplanation"
+        return "visualExplanation"
+
     async def _call_gemini_api(self, title: str, text: str) -> MaterialAnalysisResponse:
         from google.genai import types
 
         system_instruction = (
-            "You are the intelligence behind LearnX STREAM, an expert AI visual teacher.\n"
-            "When a student asks ANY educational question, generate a high-quality educational response (like ChatGPT/Gemini) "
-            "paired with an interactive conceptual visualization.\n\n"
+            "You are the pedagogical intelligence behind LearnX STREAM — an elite AI visual educator.\n"
+            "When a student asks ANY educational question, your mission is to behave like an exceptional teacher: "
+            "provide a natural, crystal-clear explanation paired with a synchronized, dynamic visualization.\n\n"
             "==================================================\n"
-            "CORE PRINCIPLE: DO NOT FORCE FIXED TEMPLATES\n"
+            "TEACHING PRINCIPLES (NATURAL & TAILORED):\n"
             "==================================================\n"
-            "Do NOT force every answer into the same fixed structure.\n"
-            "Understand the question and decide how the concept should be taught:\n"
-            "1. Understand the question and identify the student's likely learning need.\n"
-            "2. Explain the concept clearly using simple, student-friendly language (avoid unnecessary jargon and huge paragraphs).\n"
-            "3. Identify the important relationships, sequence, hierarchy, comparison, mechanism, formula, or process.\n"
-            "4. Decide whether visualization will improve understanding, and choose the best representation:\n"
-            "   - Process / Workflow: for biological cycles, chemical reactions, physical transformations (e.g., Photosynthesis, Water Cycle, Digestion)\n"
-            "   - Sequence: for network protocols, CPU instruction cycles (e.g., TCP Three-Way Handshake, OAuth)\n"
-            "   - Hierarchy / Concept Map: for OOP inheritance, classification, system architectures\n"
-            "   - Relationship / Simulation: for physics formulas, electrical circuits, mathematical relationships (e.g., Ohm's Law, Supply & Demand)\n"
-            "   - Algorithm: for search, sorting, divide-and-conquer, recursion (e.g., Binary Search, Recursion)\n"
-            "   - Comparison / Diagram: for relational queries, set theory (e.g., SQL JOIN types, TCP vs UDP)\n"
-            "5. Connect the visualization directly to the explanation (synchronize visual elements with conceptual points).\n\n"
+            "1. Explain clearly and naturally (like top-tier ChatGPT / Gemini responses).\n"
+            "2. Do NOT force every answer into the same fixed structure or rigid template.\n"
+            "3. Use clear language, short paragraphs (no massive textbook walls of text), tailored section headings, "
+            "intuitive real-world examples, and formulas/equations where relevant (e.g. V = I * R).\n"
+            "4. Do NOT repeat information or use unnecessary AI jargon.\n"
+            "5. Number of sections in 'answer.sections' should match what the concept needs (typically 2 to 4 focused sections).\n\n"
             "==================================================\n"
-            "ANSWER GENERATION GUIDELINES\n"
+            "DYNAMIC VISUALIZATION SELECTION:\n"
             "==================================================\n"
-            "- A clear title\n"
-            "- A short direct explanation (in summary)\n"
-            "- Flexible educational sections in 'answer.sections': generate 2 to 5 natural sections with tailored headings "
-            "(e.g., 'How It Works', 'The Core Mechanism', 'The Base Case Anchor', 'Why the Array Must Be Sorted', 'Real-World Example', 'The Mathematical Formula'). "
-            "Do NOT generate unnecessary sections. If a concept can be explained in 2 sections, provide 2. If it needs more, provide more.\n"
-            "- 'visualization': structure with enabled, type, title, description, elements, relationships, steps (with stepNumber, title, description, whatIsHappening, visualElements, action, result).\n"
-            "- 'visualExplanation': direct explanation of what the student is seeing in the visualization.\n"
-            "- 'keyTakeaway': 1-2 punchy sentences capturing the core takeaway.\n"
-            "- 'realWorldConnection': practical real-world application/connection.\n"
-            "- 'quickCheck': interactive concept check question with 3-4 options, correctAnswer, and explanation.\n\n"
+            "Choose the most effective visualization type for the specific concept:\n"
+            "- 'workflow' / 'process': for biological cycles, chemical reactions, physical transformations (e.g., Photosynthesis, Water Cycle, Cellular Respiration)\n"
+            "- 'workflow' / 'sequence': for network protocols, transaction flows, execution stages (e.g., TCP Three-Way Handshake, OAuth, Packet Transmission)\n"
+            "- 'visualExplanation' / 'algorithm': for algorithms, search, sorting, divide-and-conquer (e.g., Binary Search, MergeSort, Two Pointers)\n"
+            "- 'conceptMap' / 'hierarchy': for OOP inheritance, taxonomy, class blueprints, systems (e.g., OOP Inheritance, DBMS Models)\n"
+            "- 'simulation' / 'relationship': for physics formulas, reactive circuits, math balance (e.g., Ohm's Law, Gravity, Supply & Demand)\n"
+            "- 'diagram' / 'comparison': for relational database queries, table sets, entity relations (e.g., SQL JOIN types, Set Intersections)\n"
+            "- 'stepByStep': for recursive call stack unwinding, multi-stage procedures (e.g., Recursion call frames, Factorial stack)\n"
+            "- 'guidedChat': for philosophical, abstract, or open-ended reasoning.\n\n"
+            "IMPORTANT: The visualization and the explanation MUST come from the EXACT SAME conceptual understanding.\n"
+            "Always include 2 to 5 stages in 'visualization.steps' (even for concept maps, hierarchies, and diagrams, provide sequential exploration stages: e.g. Stage 1: Superclass Base, Stage 2: Subclasses & Attributes, Stage 3: Method Overriding & Execution).\n\n"
+            "==================================================\n"
+            "JSON OUTPUT FORMAT:\n"
+            "==================================================\n"
             "Return ONLY valid JSON matching this schema:\n"
             "{\n"
-            '  "topic": "...",\n'
-            '  "summary": "...",\n'
-            '  "conceptOverview": "...",\n'
+            '  "topic": "Canonical topic name (e.g. Recursion)",\n'
+            '  "summary": "Short 2-3 sentence overview explaining what the student will learn",\n'
             '  "answer": {\n'
-            '    "title": "...",\n'
-            '    "summary": "...",\n'
+            '    "title": "Clear, engaging educational title (e.g. Recursion: Self-Referential Problem Solving)",\n'
+            '    "summary": "Direct, clear answer to the student question",\n'
             '    "sections": [\n'
             '      {\n'
-            '        "heading": "...",\n'
-            '        "content": "...",\n'
+            '        "heading": "Tailored Section Heading",\n'
+            '        "content": "Short, clear paragraph explaining this aspect.",\n'
             '        "type": "text"\n'
             '      }\n'
             '    ]\n'
             '  },\n'
             '  "visualization": {\n'
             '    "enabled": true,\n'
-            '    "type": "process|workflow|algorithm|simulation|concept_map|diagram|step_by_step|guided_chat",\n'
-            '    "title": "...",\n'
-            '    "description": "...",\n'
-            '    "elements": [],\n'
-            '    "relationships": [],\n'
+            '    "type": "process|sequence|algorithm|hierarchy|relationship|comparison|simulation|conceptMap|stepByStep|genericVisualExplanation",\n'
+            '    "title": "Descriptive visual model title",\n'
+            '    "description": "Short description of the visual model",\n'
+            '    "elements": [\n'
+            '      {\n'
+            '        "id": "1",\n'
+            '        "label": "Element Label",\n'
+            '        "description": "What this represents",\n'
+            '        "role": "core|input|intermediate|output",\n'
+            '        "state": "active|inactive"\n'
+            '      }\n'
+            '    ],\n'
+            '    "relationships": [\n'
+            '      {\n'
+            '        "from": "1",\n'
+            '        "to": "2",\n'
+            '        "label": "Flow or interaction description",\n'
+            '        "type": "flow|subclass|call|connects"\n'
+            '      }\n'
+            '    ],\n'
             '    "steps": [\n'
             '      {\n'
             '        "stepNumber": 1,\n'
-            '        "title": "...",\n'
-            '        "description": "...",\n'
-            '        "whatIsHappening": "...",\n'
-            '        "visualElements": [],\n'
-            '        "action": "...",\n'
-            '        "result": "..."\n'
+            '        "title": "Stage Title",\n'
+            '        "description": "Explanation of this stage",\n'
+            '        "whatIsHappening": "Clear, concise explanation of the action taking place",\n'
+            '        "visualElements": ["Element 1", "Element 2"],\n'
+            '        "action": "Action taken in this stage",\n'
+            '        "result": "Resulting state or output"\n'
             '      }\n'
             '    ]\n'
             '  },\n'
-            '  "visualExplanation": "...",\n'
-            '  "keyTakeaway": "...",\n'
-            '  "keyIdea": "...",\n'
-            '  "realWorldConnection": "...",\n'
+            '  "visualExplanation": "2-3 clear sentences explaining what the student sees in the visualization and how it proves the concept.",\n'
+            '  "keyTakeaway": "1-2 punchy sentences summarizing the core mental model or key idea.",\n'
+            '  "realWorldConnection": "Practical real-world application or where you see this.",\n'
             '  "quickCheck": {\n'
             '    "enabled": true,\n'
-            '    "question": "...",\n'
-            '    "options": ["...", "...", "..."],\n'
-            '    "correctAnswer": "...",\n'
-            '    "explanation": "..."\n'
+            '    "question": "Insightful conceptual multiple-choice question",\n'
+            '    "options": ["Option A", "Option B", "Option C"],\n'
+            '    "correctAnswer": "Option A",\n'
+            '    "explanation": "Clear reason why this answer is correct."\n'
             '  },\n'
-            '  "steps": [\n'
-            '    {\n'
-            '      "stepNumber": 1,\n'
-            '      "title": "...",\n'
-            '      "description": "...",\n'
-            '      "whatIsHappening": "...",\n'
-            '      "visualElements": [],\n'
-            '      "action": "...",\n'
-            '      "result": "..."\n'
-            '    }\n'
+            '  "concepts": [\n'
+            '    {"name": "Sub-concept", "type": "category", "importance": "high"}\n'
             '  ],\n'
-            '  "concepts": [{"name": "...", "type": "...", "importance": "high|medium|low"}],\n'
             '  "difficulty": "easy|medium|hard",\n'
-            '  "prerequisites": ["..."],\n'
-            '  "recommended_representation": {"type": "...", "reason": "..."},\n'
-            '  "recommendedVisualization": "...",\n'
-            '  "visualization_type": "...",\n'
-            '  "visualization_data": { ... },\n'
-            '  "why_this_works": "..."\n'
+            '  "prerequisites": ["Prerequisite 1"]\n'
             "}"
         )
 
@@ -256,7 +270,7 @@ class AIService:
             f"Question / Topic: {title}\n\n"
             f"Context / Study Material: {text}\n\n"
             "Provide an expert teacher response. Understand the concept, explain it clearly with natural tailored sections, "
-            "and create a synchronized interactive visualization."
+            "and create a synchronized interactive visualization matching the schema."
         )
 
         config = types.GenerateContentConfig(
@@ -275,7 +289,218 @@ class AIService:
         logger.info(f"Gemini responded with {len(raw_response_text)} chars.")
         cleaned_json = self._clean_json_string(raw_response_text)
 
-        return MaterialAnalysisResponse.model_validate_json(cleaned_json)
+        return self._parse_and_normalize_gemini_response(cleaned_json, title, text)
+
+    def _parse_and_normalize_gemini_response(self, raw_json: str, title: str, text: str) -> MaterialAnalysisResponse:
+        data = json.loads(raw_json)
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected JSON object from AI, got {type(data)}")
+
+        topic = data.get("topic") or title
+
+        # 1. Answer Payload & Sections
+        raw_answer = data.get("answer") or {}
+        ans_title = raw_answer.get("title") or f"Understanding {topic}"
+        ans_summary = (
+            raw_answer.get("summary")
+            or data.get("summary")
+            or data.get("conceptOverview")
+            or f"A visual and conceptual guide to understanding {topic}."
+        )
+
+        raw_sections = raw_answer.get("sections") or []
+        sections: List[AnswerSection] = []
+        if isinstance(raw_sections, list):
+            for s in raw_sections:
+                if isinstance(s, dict):
+                    h = (s.get("heading") or "Key Aspect").strip()
+                    c = (s.get("content") or "").strip()
+                    t = (s.get("type") or "text").strip()
+                    if h or c:
+                        sections.append(AnswerSection(heading=h, content=c, type=t))
+
+        if not sections and ans_summary:
+            sections.append(AnswerSection(heading="Key Concepts", content=ans_summary, type="text"))
+
+        answer_payload = AnswerPayload(
+            title=ans_title,
+            summary=ans_summary,
+            sections=sections,
+        )
+
+        # 2. Dynamic Visualization Selection & Normalization
+        raw_vis = data.get("visualization") or data.get("visualization_data") or {}
+        vis_type_str = (
+            raw_vis.get("type")
+            or data.get("visualizationType")
+            or data.get("visualization_type")
+            or data.get("recommendedVisualization")
+            or choose_visualization_type(topic, text)
+        )
+        canonical_vis = self._normalize_vis_type(vis_type_str)
+
+        # Parse visual steps
+        raw_steps = raw_vis.get("steps") or data.get("steps") or []
+        steps_list: List[StepItem] = []
+        if isinstance(raw_steps, list):
+            for idx, st in enumerate(raw_steps, 1):
+                if isinstance(st, dict):
+                    steps_list.append(StepItem(
+                        stepNumber=int(st.get("stepNumber") or st.get("step_number") or idx),
+                        title=(st.get("title") or f"Stage {idx}").strip(),
+                        description=(st.get("description") or st.get("whatIsHappening") or "").strip(),
+                        whatIsHappening=(st.get("whatIsHappening") or st.get("description") or "").strip(),
+                        visualElements=st.get("visualElements") or st.get("elements") or [],
+                        highlightedElements=st.get("highlightedElements") or [],
+                        activeElements=st.get("activeElements") or [],
+                        action=st.get("action") or "",
+                        result=st.get("result") or "",
+                    ))
+
+        # If steps list has fewer than 2 stages (e.g. for static concept maps or graphs), synthesize stages
+        if len(steps_list) < 2:
+            raw_elements = raw_vis.get("elements") or []
+            if raw_elements and isinstance(raw_elements, list):
+                for idx, elem in enumerate(raw_elements[:4], 1):
+                    if isinstance(elem, dict):
+                        lbl = elem.get("label") or elem.get("name") or f"Component {idx}"
+                        desc = elem.get("description") or f"Explore the role of {lbl} in {topic}."
+                        steps_list.append(StepItem(
+                            stepNumber=idx,
+                            title=f"Stage {idx}: {lbl}",
+                            description=desc,
+                            whatIsHappening=desc,
+                            visualElements=[lbl],
+                            action=f"Focusing on {lbl}",
+                            result=f"{lbl} structured in the visual model"
+                        ))
+            elif sections:
+                for idx, s in enumerate(sections[:3], 1):
+                    steps_list.append(StepItem(
+                        stepNumber=idx,
+                        title=s.heading,
+                        description=s.content[:140],
+                        whatIsHappening=s.content[:140],
+                        visualElements=[topic, s.heading],
+                        action=f"Analyzing {s.heading}",
+                        result=f"Established understanding of {s.heading}"
+                    ))
+            else:
+                steps_list = [
+                    StepItem(stepNumber=1, title=f"Foundation of {topic}", description=f"Initial setup of {topic}", whatIsHappening=f"Observing core properties of {topic}"),
+                    StepItem(stepNumber=2, title=f"Execution of {topic}", description=f"Applying {topic} in practice", whatIsHappening=f"Tracking state transformation in {topic}")
+                ]
+
+        # Construct clean visualization payload dictionary
+        vis_dict = {
+            "enabled": True,
+            "type": canonical_vis,
+            "title": raw_vis.get("title") or f"{topic} Visual Model",
+            "description": raw_vis.get("description") or f"Interactive visualization of {topic}.",
+            "elements": raw_vis.get("elements") or [],
+            "relationships": raw_vis.get("relationships") or [],
+            "steps": [s.model_dump() for s in steps_list],
+        }
+
+        # 3. Pedagogical Takeaways & Real-World Connection
+        visual_explanation = (
+            data.get("visualExplanation")
+            or raw_vis.get("description")
+            or f"The visual representation demonstrates the core structure and interactions of {topic}."
+        )
+
+        key_takeaway = (
+            data.get("keyTakeaway")
+            or data.get("keyIdea")
+            or ans_summary
+        )
+
+        real_world = (
+            data.get("realWorldConnection")
+            or ""
+        )
+
+        # 4. Quick Check Question
+        raw_qc = data.get("quickCheck") or data.get("quick_check") or {}
+        if isinstance(raw_qc, dict) and raw_qc.get("question") and raw_qc.get("options"):
+            opts = [str(o) for o in raw_qc.get("options", []) if o]
+            ans = str(raw_qc.get("correctAnswer") or (opts[0] if opts else ""))
+            quick_check = QuickCheck(
+                enabled=raw_qc.get("enabled", True),
+                question=str(raw_qc.get("question")),
+                options=opts,
+                correctAnswer=ans,
+                explanation=str(raw_qc.get("explanation") or f"'{ans}' correctly captures the core mechanism of {topic}."),
+            )
+        else:
+            quick_check = QuickCheck(
+                enabled=True,
+                question=f"What is the most critical principle governing {topic}?",
+                options=[
+                    f"Understanding its core rule and step-by-step mechanism",
+                    f"Executing random operations without constraints",
+                    f"Assuming all inputs behave identically regardless of structure"
+                ],
+                correctAnswer=f"Understanding its core rule and step-by-step mechanism",
+                explanation=f"Mastering {topic} requires identifying its key rules, inputs, and state changes."
+            )
+
+        # 5. Concept Items & Taxonomy
+        raw_concepts = data.get("concepts") or []
+        concepts_list: List[ConceptItem] = []
+        if isinstance(raw_concepts, list):
+            for c in raw_concepts:
+                if isinstance(c, dict) and c.get("name"):
+                    imp = c.get("importance", "medium")
+                    if imp not in ["high", "medium", "low"]:
+                        imp = "medium"
+                    concepts_list.append(ConceptItem(
+                        name=str(c.get("name")),
+                        type=str(c.get("type") or "concept"),
+                        importance=imp,
+                    ))
+        if not concepts_list:
+            concepts_list = [
+                ConceptItem(name=topic, type="core_concept", importance="high")
+            ]
+
+        difficulty = data.get("difficulty")
+        if difficulty not in ["easy", "medium", "hard"]:
+            difficulty = "medium"
+
+        raw_prereqs = data.get("prerequisites") or []
+        prereqs = [str(p) for p in raw_prereqs if p] if isinstance(raw_prereqs, list) else []
+
+        reason_str = raw_vis.get("description") or f"This visual model is tailored to clarify {topic}."
+
+        return MaterialAnalysisResponse(
+            topic=topic,
+            summary=ans_summary,
+            conceptOverview=ans_summary,
+            answer=answer_payload,
+            visualExplanation=visual_explanation,
+            keyTakeaway=key_takeaway,
+            keyIdea=key_takeaway,
+            realWorldConnection=real_world,
+            quickCheck=quick_check,
+            steps=steps_list,
+            concepts=concepts_list,
+            difficulty=difficulty,
+            prerequisites=prereqs,
+            recommended_representation=RecommendedRepresentation(
+                type=canonical_vis,
+                reason=reason_str,
+            ),
+            visualization_type=canonical_vis,
+            visualization_data=vis_dict,
+            why_this_works=visual_explanation,
+            visualizationType=canonical_vis,
+            title=topic,
+            subtitle="Let's understand it visually.",
+            recommendedVisualization=canonical_vis,
+            reason=reason_str,
+            visualization=vis_dict,
+        )
 
     def _clean_json_string(self, text: str) -> str:
         text = text.strip()

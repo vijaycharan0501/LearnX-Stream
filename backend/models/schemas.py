@@ -9,12 +9,12 @@ class ConceptItem(BaseModel):
         examples=["Divide and Conquer"],
     )
     type: str = Field(
-        ...,
+        default="concept",
         description="Category/type of concept (e.g., algorithm, data_structure, rule, formula, architecture)",
         examples=["algorithmic_paradigm"],
     )
     importance: Literal["high", "medium", "low"] = Field(
-        ...,
+        default="medium",
         description="Relative importance of this concept for understanding the topic",
         examples=["high"],
     )
@@ -130,12 +130,11 @@ class MaterialAnalysisResponse(BaseModel):
         description="Interactive concept check question with options and explanation",
     )
     concepts: List[ConceptItem] = Field(
-        ...,
-        min_length=1,
+        default_factory=list,
         description="Extracted sub-concepts and foundational building blocks",
     )
     difficulty: Literal["easy", "medium", "hard"] = Field(
-        ...,
+        default="medium",
         description="Estimated conceptual difficulty level",
         examples=["medium"],
     )
@@ -144,8 +143,8 @@ class MaterialAnalysisResponse(BaseModel):
         description="List of prerequisite concepts required before learning this material",
         examples=["Sorted Arrays", "Index Arithmetic", "Time Complexity Basics"],
     )
-    recommended_representation: RecommendedRepresentation = Field(
-        ...,
+    recommended_representation: Optional[RecommendedRepresentation] = Field(
+        default=None,
         description="AI recommended primary learning representation format",
     )
     visualization_type: str = Field(

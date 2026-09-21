@@ -131,13 +131,13 @@ class VisualizationRenderer extends StatelessWidget {
 
   static String _normalizeType(String rawType) {
     final t = rawType.toLowerCase().trim().replaceAll('-', '_').replaceAll(' ', '_');
-    if (t == 'process' || t == 'workflow') {
+    if (t == 'process' || t == 'workflow' || t == 'sequence') {
       return 'process';
-    } else if (t == 'diagram' || t == 'interactive_diagram') {
+    } else if (t == 'diagram' || t == 'interactive_diagram' || t == 'comparison') {
       return 'interactive_diagram';
-    } else if (t == 'concept_map' || t == 'conceptmap') {
+    } else if (t == 'concept_map' || t == 'conceptmap' || t == 'hierarchy') {
       return 'concept_map';
-    } else if (t == 'simulation') {
+    } else if (t == 'simulation' || t == 'relationship') {
       return 'simulation';
     } else if (t == 'step_by_step' || t == 'stepbystep') {
       return 'step_by_step';
@@ -147,7 +147,9 @@ class VisualizationRenderer extends StatelessWidget {
         t == 'binary_search' ||
         t == 'visualization' ||
         t == 'visualexplanation' ||
-        t == 'visual_explanation') {
+        t == 'visual_explanation' ||
+        t == 'genericvisualexplanation' ||
+        t == 'generic_visual_explanation') {
       return 'algorithm';
     } else if (t == 'guided_chat' || t == 'guidedchat') {
       return 'guided_chat';
