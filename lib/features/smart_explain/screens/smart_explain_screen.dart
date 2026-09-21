@@ -270,6 +270,8 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Smart Explain Studio'),
+        elevation: 0,
+        backgroundColor: AppColors.surface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
           onPressed: () => Navigator.of(context).pop(),
@@ -280,15 +282,15 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
         child: ResponsiveLayout(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. CONCEPT INTRODUCTION: Title, Subtitle, and "What is [topic]?"
+                // 1. CLEAN TOP HEADER & SHORT EXPLANATION
                 _buildHeaderCard(aiChosenDisplayName, activeDisplayName),
                 const SizedBox(height: 18),
 
-                // 2. DOMINANT VISUAL EXPLANATION (65-75% visual prominence)
+                // 2. DOMINANT LARGE VISUALIZATION CANVAS (65-75% screen presence)
                 if (widget.analysis.isVisualizationEnabled) ...[
                   _buildVisualSectionHeader(),
                   VisualizationRenderer(
@@ -298,11 +300,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                   const SizedBox(height: 18),
                 ],
 
-                // 3. KEY IDEA / KEY TAKEAWAY: "💡 Key Idea"
-                _buildKeyIdeaCard(),
-                const SizedBox(height: 14),
-
-                // 4. WHAT YOU ARE SEEING (if available and distinct)
+                // 3. WHAT'S HAPPENING (if distinct visual explanation text provided)
                 if (widget.analysis.visualExplanation != null &&
                     widget.analysis.visualExplanation!.trim().isNotEmpty &&
                     widget.analysis.visualExplanation!.trim() != widget.analysis.effectiveKeyIdea) ...[
@@ -310,26 +308,31 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                   const SizedBox(height: 14),
                 ],
 
-                // 5. FLEXIBLE DEEP-DIVE SECTIONS (if provided dynamically by Gemini)
+                // 4. KEY IDEA / TAKEAWAY
+                _buildKeyIdeaCard(),
+                const SizedBox(height: 16),
+
+                // 5. UNDERSTAND THE CONCEPT (Dynamic Gemini Sections)
                 if (widget.analysis.answer != null && widget.analysis.answer!.sections.isNotEmpty) ...[
+                  _buildUnderstandConceptHeader(),
                   ..._buildDynamicAnswerSections(),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                 ],
 
-                // 6. REAL-WORLD CONNECTION: "🌍 Where you see this" (if available)
+                // 6. REAL-WORLD CONNECTION (Where you see this)
                 if (widget.analysis.realWorldConnection != null &&
                     widget.analysis.realWorldConnection!.trim().isNotEmpty) ...[
                   _buildRealWorldCard(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                 ],
 
-                // 7. QUICK CHECK: Interactive Concept Check Question
+                // 7. QUICK CHECK: Single interactive question with immediate feedback
                 if (quickCheck != null && quickCheck.enabled && quickCheck.options.isNotEmpty) ...[
                   _QuickCheckCard(quickCheck: quickCheck),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
                 ],
 
-                // 6. Back Navigation
+                // 8. Back Navigation Button
                 _buildBackButton(context),
                 const SizedBox(height: 32),
               ],
@@ -346,20 +349,67 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.tealLight,
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.tealBorder),
             ),
-            child: const Icon(
-              Icons.remove_red_eye_rounded,
-              size: 15,
-              color: AppColors.tealPrimary,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.visibility_rounded,
+                  size: 14,
+                  color: AppColors.tealPrimary,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  'SEE IT',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.tealPrimary,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
           const Text(
-            'See it visually',
+            "Let's understand it visually.",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnderstandConceptHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: AppColors.blueLight,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.menu_book_rounded,
+              size: 14,
+              color: AppColors.bluePrimary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Understand the concept',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -382,12 +432,12 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
       if (heading.isEmpty && content.isEmpty) return const SizedBox.shrink();
 
       return Padding(
-        padding: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.only(bottom: 12),
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.cardBorder),
             boxShadow: AppColors.softShadow,
           ),
@@ -399,7 +449,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                   children: [
                     Container(
                       width: 4,
-                      height: 15,
+                      height: 14,
                       decoration: BoxDecoration(
                         color: AppColors.tealPrimary,
                         borderRadius: BorderRadius.circular(2),
@@ -410,7 +460,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                       child: Text(
                         heading,
                         style: const TextStyle(
-                          fontSize: 14.5,
+                          fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
                           letterSpacing: -0.2,
@@ -510,7 +560,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
     final displayTopicName = cleanTopic.isNotEmpty ? cleanTopic : widget.analysis.topic;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -520,28 +570,28 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Badges Row: "AI chose: [Method]" + "Try another way"
+          // Row: "AI chose: [Method]" + "Try another way"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.tealLight,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.tealBorder),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.auto_awesome_rounded, size: 13, color: AppColors.tealPrimary),
-                      const SizedBox(width: 5),
+                      const Icon(Icons.auto_awesome_rounded, size: 12, color: AppColors.tealPrimary),
+                      const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           isCustomMode ? 'Showing: $activeName' : 'AI chose: $aiChosenName',
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: AppColors.tealPrimary,
                           ),
@@ -555,23 +605,23 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
               const SizedBox(width: 8),
               InkWell(
                 onTap: _showTryAnotherWayBottomSheet,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceSecondary,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.cardBorder),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.tune_rounded, size: 13, color: AppColors.textSecondary),
-                      SizedBox(width: 5),
+                      SizedBox(width: 4),
                       Text(
                         'Try another way',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textSecondary,
                         ),
@@ -584,55 +634,44 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Topic Title
+          // Topic Title (Large, bold, crisp)
           Text(
             widget.analysis.topic,
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+              letterSpacing: -0.6,
             ),
           ),
-          const SizedBox(height: 4),
-
-          // Subtitle
-          const Text(
-            "Let's understand it visually.",
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // Concept Introduction: "What is [topic]?"
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.surfaceSecondary,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.cardBorder),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.6)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, size: 15, color: AppColors.tealPrimary),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.tealPrimary),
+                    const SizedBox(width: 5),
                     Text(
                       'What is $displayTopicName?',
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
                 Text(
                   widget.analysis.effectiveOverview,
                   style: const TextStyle(
@@ -645,6 +684,29 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Explain Differently Action Pill Button
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: _showTryAnotherWayBottomSheet,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.tealPrimary),
+              label: const Text(
+                'Explain differently',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.tealPrimary,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                side: const BorderSide(color: AppColors.tealBorder),
+                backgroundColor: AppColors.tealLight,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -652,27 +714,43 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
 
   Widget _buildVisualExplanationCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.tealBorder),
         boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.visibility_rounded, size: 18, color: AppColors.tealPrimary),
-              SizedBox(width: 8),
-              Text(
-                'What You Are Seeing',
+              const Icon(Icons.psychology_rounded, size: 17, color: AppColors.tealPrimary),
+              const SizedBox(width: 7),
+              const Text(
+                "What's happening?",
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.2,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.tealLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'What You Are Seeing',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.tealPrimary,
+                  ),
                 ),
               ),
             ],
@@ -694,10 +772,10 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
 
   Widget _buildKeyIdeaCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.orangeLight,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.orangeBorder),
         boxShadow: AppColors.softShadow,
       ),
@@ -706,12 +784,12 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
         children: [
           const Row(
             children: [
-              Text('💡', style: TextStyle(fontSize: 18)),
-              SizedBox(width: 8),
+              Text('💡', style: TextStyle(fontSize: 16)),
+              SizedBox(width: 7),
               Text(
                 'Key Idea',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.2,
@@ -719,7 +797,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             widget.analysis.effectiveKeyIdea,
             style: const TextStyle(
@@ -736,10 +814,10 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
 
   Widget _buildRealWorldCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: AppColors.softShadow,
       ),
@@ -748,12 +826,12 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
         children: [
           const Row(
             children: [
-              Text('🌍', style: TextStyle(fontSize: 18)),
-              SizedBox(width: 8),
+              Text('🌍', style: TextStyle(fontSize: 16)),
+              SizedBox(width: 7),
               Text(
                 'Where you see this',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.2,
@@ -761,7 +839,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             widget.analysis.realWorldConnection!,
             style: const TextStyle(
