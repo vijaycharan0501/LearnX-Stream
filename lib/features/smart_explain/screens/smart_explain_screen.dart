@@ -296,6 +296,7 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
 
                 // 2. VISUAL EXPLANATION: Active Interactive Visualization
                 if (widget.analysis.isVisualizationEnabled) ...[
+                  _buildVisualSectionHeader(),
                   VisualizationRenderer(
                     analysis: widget.analysis,
                     overrideMode: _selectedMode,
@@ -335,6 +336,38 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildVisualSectionHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, left: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.tealLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.remove_red_eye_rounded,
+              size: 15,
+              color: AppColors.tealPrimary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'See it visually',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -388,20 +421,85 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                 ),
                 const SizedBox(height: 8),
               ],
-              Text(
-                content,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  height: 1.45,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
-                ),
-              ),
+              _buildSectionContent(content),
             ],
           ),
         ),
       );
     }).toList();
+  }
+
+  Widget _buildSectionContent(String text) {
+    final lines = text.split('\n');
+    if (lines.length <= 1) {
+      return Text(
+        text,
+        style: const TextStyle(
+          fontSize: 13.5,
+          height: 1.5,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty) return const SizedBox(height: 6);
+        final isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*');
+        final isNumbered = RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed);
+
+        if (isBullet || isNumbered) {
+          final contentText = isBullet
+              ? trimmed.substring(1).trim()
+              : trimmed.replaceFirst(RegExp(r'^\d+[\.\)]\s+'), '').trim();
+
+          return Padding(
+            padding: const EdgeInsets.only(top: 3, bottom: 3, left: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 6, right: 8),
+                  width: 5,
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    color: AppColors.tealPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    contentText,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      height: 1.45,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            trimmed,
+            style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.5,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildHeaderCard(String aiChosenName, String activeName) {

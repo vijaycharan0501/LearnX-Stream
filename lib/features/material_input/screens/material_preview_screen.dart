@@ -153,11 +153,22 @@ class _MaterialPreviewScreenState extends State<MaterialPreviewScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Connecting to LearnX AI to extract key concepts, difficulty, and the best learning representation...',
+                    'Understanding your question...',
                     style: TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.tealPrimary,
                       height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Building your visual explanation...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
