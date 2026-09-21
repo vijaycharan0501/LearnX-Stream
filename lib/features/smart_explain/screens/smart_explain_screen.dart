@@ -819,6 +819,7 @@ class _QuickCheckCard extends StatefulWidget {
 
 class _QuickCheckCardState extends State<_QuickCheckCard> {
   int? _selectedIndex;
+  bool _showReviewExplanation = false;
 
   @override
   Widget build(BuildContext context) {
@@ -922,6 +923,7 @@ class _QuickCheckCardState extends State<_QuickCheckCard> {
                 onTap: () {
                   setState(() {
                     _selectedIndex = index;
+                    _showReviewExplanation = false;
                   });
                 },
                 borderRadius: BorderRadius.circular(12),
@@ -930,7 +932,10 @@ class _QuickCheckCardState extends State<_QuickCheckCard> {
                   decoration: BoxDecoration(
                     color: bgColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor, width: isThisSelected || (hasAnswered && isThisCorrectAnswer) ? 1.6 : 1.0),
+                    border: Border.all(
+                      color: borderColor,
+                      width: isThisSelected || (hasAnswered && isThisCorrectAnswer) ? 1.6 : 1.0,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -981,49 +986,134 @@ class _QuickCheckCardState extends State<_QuickCheckCard> {
           if (hasAnswered) ...[
             const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: isCorrect ? AppColors.greenLight : AppColors.coralLight,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isCorrect ? AppColors.greenBorder : AppColors.coralBorder,
+                  width: 1.2,
                 ),
               ),
-              child: Row(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    isCorrect ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded,
-                    size: 16,
-                    color: isCorrect ? AppColors.greenPrimary : AppColors.coralPrimary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isCorrect ? 'Correct!' : 'Keep learning!',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                            color: isCorrect ? AppColors.greenPrimary : AppColors.coralPrimary,
-                          ),
-                        ),
-                        if (qc.explanation.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            qc.explanation,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                              height: 1.35,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        isCorrect ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded,
+                        size: 17,
+                        color: isCorrect ? AppColors.greenPrimary : AppColors.coralPrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isCorrect ? 'Correct!' : 'Keep learning!',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: isCorrect ? AppColors.greenPrimary : AppColors.coralPrimary,
+                              ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isCorrect
+                                  ? '✓ You understood the key relationship.'
+                                  : "Let's look at that part again.",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isCorrect ? AppColors.greenPrimary : AppColors.coralPrimary,
+                              ),
+                            ),
+                            if (qc.explanation.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                qc.explanation,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+
+                  // If incorrect, show "Explain this part again" action
+                  if (!isCorrect) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _showReviewExplanation = !_showReviewExplanation;
+                        });
+                      },
+                      icon: Icon(
+                        _showReviewExplanation ? Icons.visibility_off_rounded : Icons.auto_awesome_rounded,
+                        size: 14,
+                      ),
+                      label: Text(
+                        _showReviewExplanation ? 'Hide concept review' : 'Explain this part again',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        side: const BorderSide(color: AppColors.coralBorder),
+                        foregroundColor: AppColors.coralPrimary,
+                        backgroundColor: AppColors.surface,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    if (_showReviewExplanation) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.cardBorder),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.lightbulb_outline_rounded, size: 14, color: AppColors.tealPrimary),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Key Concept Review',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              qc.explanation.isNotEmpty
+                                  ? qc.explanation
+                                  : 'The correct answer is "${qc.correctAnswer}". Re-read the visual explanation above to reinforce how this relationship works.',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),

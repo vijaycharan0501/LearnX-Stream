@@ -158,19 +158,19 @@ class TopicVisualizationHelper {
       };
     }
 
-    // 3. OOP / Object Oriented Programming
+    // 3. OOP / Object Oriented Programming & Inheritance
     if (_matches(cleanTopic, ['oop', 'object oriented', 'class', 'inheritance', 'polymorphism', 'encapsulation', 'abstraction'])) {
       return {
         'root_node': {
           'title': cleanTopic,
-          'subtitle': 'Object-Oriented Programming Architecture',
+          'subtitle': 'Object-Oriented Programming & Inheritance Architecture',
         },
         'nodes': [
           {
             'id': 'class',
             'title': 'Class Definition',
-            'subtitle': 'Blueprint for creating object instances',
-            'definition': 'A blueprint or prototype defining attributes (fields) and behaviors (methods).',
+            'subtitle': 'Parent Blueprint (Base / Superclass)',
+            'definition': 'A blueprint defining common attributes (e.g. speed, fuel) and behaviors (e.g. drive()) shared across all subtypes.',
             'example': 'class Vehicle { int speed; void drive(); }',
             'parent_id': 'root',
             'level': 1,
@@ -179,29 +179,19 @@ class TopicVisualizationHelper {
           {
             'id': 'object',
             'title': 'Object Instance',
-            'subtitle': 'Concrete living entity with allocated state',
-            'definition': 'An instantiated object in heap memory created from a class template.',
-            'example': 'Vehicle myCar = new Vehicle();',
+            'subtitle': 'Child Instance (Derived Living Entity)',
+            'definition': 'Concrete instantiated living entity and subclasses allocated in heap memory derived from the base class blueprint.',
+            'example': 'Vehicle myCar = new ElectricCar();',
             'parent_id': 'root',
             'level': 1,
             'icon': 'instance',
           },
           {
-            'id': 'encapsulation',
-            'title': 'Encapsulation',
-            'subtitle': 'Data hiding & safe accessors',
-            'definition': 'Restricting direct access to object components using private fields and public methods.',
-            'example': 'private int speed; public int getSpeed()',
-            'parent_id': 'root',
-            'level': 1,
-            'icon': 'shapes',
-          },
-          {
             'id': 'inheritance',
             'title': 'Inheritance',
-            'subtitle': 'Code reuse & hierarchical specialization',
-            'definition': 'Mechanism where a child class derives traits and methods from a parent class.',
-            'example': 'class ElectricCar extends Vehicle',
+            'subtitle': 'Inherited Behavior & Code Reuse',
+            'definition': 'Mechanism where a child subclass derives attributes and methods from a parent class without repeating duplicate code.',
+            'example': 'class ElectricCar extends Vehicle { ... }',
             'parent_id': 'root',
             'level': 1,
             'icon': 'hierarchy',
@@ -209,15 +199,25 @@ class TopicVisualizationHelper {
           {
             'id': 'polymorphism',
             'title': 'Polymorphism',
-            'subtitle': 'Many forms for a unified interface',
-            'definition': 'Ability of different classes to respond to the same method call with specialized behavior.',
-            'example': 'car.accelerate() behaves differently in SportCar',
+            'subtitle': 'Method Overriding & Unified Interface',
+            'definition': 'Ability of child subclasses to provide specialized implementations of inherited parent methods (e.g. custom acceleration).',
+            'example': '@override void drive() { electricDrive(); }',
             'parent_id': 'inheritance',
             'level': 2,
             'icon': 'shapes',
           },
+          {
+            'id': 'encapsulation',
+            'title': 'Encapsulation',
+            'subtitle': 'Data Protection & Access Modifiers',
+            'definition': 'Restricting direct access to object components using private/protected fields to prevent unauthorized state tampering.',
+            'example': 'protected int speed; public int getSpeed()',
+            'parent_id': 'root',
+            'level': 1,
+            'icon': 'lock',
+          },
         ],
-        'why_this_works': 'Concept maps show how specialized components inherit attributes and methods from base blueprints without repeating code.',
+        'why_this_works': 'Concept maps show how specialized child components inherit attributes and methods from base blueprints without repeating code.',
       };
     }
 

@@ -28,6 +28,8 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
   int _activeStageIndex = 0;
   late List<String> _actors;
   late List<_ProcessStage> _stages;
+  late List<_ProcessComponent> _components;
+  _ProcessComponent? _selectedComponent;
   late String _whyWorksText;
 
   late AnimationController _particleAnimController;
@@ -102,16 +104,119 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
       ];
     }
 
+    // 3. Components / Molecules (e.g. for Photosynthesis, TCP Handshake)
+    final lowerTopic = widget.topic.toLowerCase();
+    final rawComps = data['components'] as List<dynamic>?;
+    if (rawComps != null && rawComps.isNotEmpty) {
+      _components = rawComps
+          .whereType<Map<String, dynamic>>()
+          .map((c) => _ProcessComponent.fromJson(c))
+          .toList();
+    } else if (lowerTopic.contains('photosynthesis') ||
+        lowerTopic.contains('plant') ||
+        lowerTopic.contains('chloroplast') ||
+        lowerTopic.contains('calvin')) {
+      _components = [
+        const _ProcessComponent(
+          id: 'sunlight',
+          name: 'Sunlight',
+          formula: 'Photons (hν)',
+          role: 'Energy Source',
+          description: 'Solar photons excite chlorophyll electrons in thylakoid membranes, providing energy to power photolysis and split water.',
+          icon: Icons.wb_sunny_rounded,
+          color: AppColors.orangePrimary,
+          bgColor: AppColors.orangeLight,
+        ),
+        const _ProcessComponent(
+          id: 'water',
+          name: 'Water',
+          formula: 'H₂O',
+          role: 'Electron Donor & Reactant',
+          description: 'Absorbed by plant roots; photolysis splits water into electrons, protons (H+), and releases essential byproduct oxygen (O₂).',
+          icon: Icons.water_drop_rounded,
+          color: AppColors.bluePrimary,
+          bgColor: AppColors.blueLight,
+        ),
+        const _ProcessComponent(
+          id: 'co2',
+          name: 'CO₂',
+          formula: 'Carbon Dioxide',
+          role: 'Carbon Backbone Reactant',
+          description: 'Diffuses into leaves via stomata; RuBisCO enzymes fix CO₂ in the Calvin cycle to assemble organic sugar backbones.',
+          icon: Icons.cloud_outlined,
+          color: AppColors.purplePrimary,
+          bgColor: AppColors.purpleLight,
+        ),
+        const _ProcessComponent(
+          id: 'glucose',
+          name: 'Glucose',
+          formula: 'C₆H₁₂O₆',
+          role: 'Stored Chemical Energy',
+          description: 'High-energy organic sugar synthesized in chloroplast stroma, fueling plant cellular respiration, growth, and the global food web.',
+          icon: Icons.grain_rounded,
+          color: AppColors.greenPrimary,
+          bgColor: AppColors.greenLight,
+        ),
+        const _ProcessComponent(
+          id: 'oxygen',
+          name: 'Oxygen',
+          formula: 'O₂',
+          role: 'Vital Byproduct Gas',
+          description: 'Atmospheric gas generated directly from splitting water molecules during light reactions, sustaining aerobic respiration on Earth.',
+          icon: Icons.bubble_chart_rounded,
+          color: AppColors.tealPrimary,
+          bgColor: AppColors.tealLight,
+        ),
+      ];
+    } else if (lowerTopic.contains('tcp') || lowerTopic.contains('handshake')) {
+      _components = [
+        const _ProcessComponent(
+          id: 'syn',
+          name: 'SYN Packet',
+          formula: 'Seq = ISN',
+          role: 'Connection Request',
+          description: 'Client generates an Initial Sequence Number and requests to establish synchronized communication with server.',
+          icon: Icons.flight_takeoff_rounded,
+          color: AppColors.bluePrimary,
+          bgColor: AppColors.blueLight,
+        ),
+        const _ProcessComponent(
+          id: 'syn_ack',
+          name: 'SYN-ACK Packet',
+          formula: 'Seq = ServerISN, Ack = ISN+1',
+          role: 'Server Acknowledgment & Sync',
+          description: 'Server verifies client sequence, acknowledges it with Ack=ISN+1, and sends its own server sequence number.',
+          icon: Icons.sync_alt_rounded,
+          color: AppColors.purplePrimary,
+          bgColor: AppColors.purpleLight,
+        ),
+        const _ProcessComponent(
+          id: 'ack',
+          name: 'ACK Packet',
+          formula: 'Ack = ServerISN+1',
+          role: 'Final Verification',
+          description: 'Client acknowledges server sequence number; both sockets transition to ESTABLISHED state for full-duplex data transfer.',
+          icon: Icons.verified_rounded,
+          color: AppColors.greenPrimary,
+          bgColor: AppColors.greenLight,
+        ),
+      ];
+    } else {
+      _components = [];
+    }
+
     _whyWorksText = data['why_this_works'] as String? ??
         'Breaking complex processes into sequential stages provides intuitive checkpoints for mastering the workflow.';
 
     _activeStageIndex = 0;
+    _selectedComponent = null;
   }
 
   void _nextStage() {
     if (_activeStageIndex < _stages.length - 1) {
       setState(() {
         _activeStageIndex++;
+        _selectedComponent = null;
       });
       _particleAnimController.forward(from: 0.0);
     }
@@ -121,6 +226,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     if (_activeStageIndex > 0) {
       setState(() {
         _activeStageIndex--;
+        _selectedComponent = null;
       });
       _particleAnimController.forward(from: 0.0);
     }
@@ -129,6 +235,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
   void _restart() {
     setState(() {
       _activeStageIndex = 0;
+      _selectedComponent = null;
     });
     _particleAnimController.forward(from: 0.0);
   }
@@ -166,12 +273,20 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
 
               // Stage Progression Steps (1 -> 2 -> 3)
               _buildStageCheckpoints(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
-              // Active Stage Detailed Explanation Box
+              // Interactive Component / Reactant Explorer Bar (if available)
+              if (_components.isNotEmpty) ...[
+                _buildComponentExplorer(),
+                const SizedBox(height: 18),
+              ],
+
+              // Active Stage or Component Detailed Explanation Box
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
-                child: _buildStageDetailCard(currentStage),
+                child: _selectedComponent != null
+                    ? _buildComponentDetailCard(_selectedComponent!)
+                    : _buildStageDetailCard(currentStage),
               ),
               const SizedBox(height: 24),
 
@@ -568,6 +683,216 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     );
   }
 
+  Widget _buildComponentExplorer() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Flexible(
+              child: Text(
+                'Interactive Process Elements',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.tealLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Tap elements to inspect role',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.tealPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: _components.map((comp) {
+              final isSelected = _selectedComponent?.id == comp.id;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (_selectedComponent?.id == comp.id) {
+                        _selectedComponent = null;
+                      } else {
+                        _selectedComponent = comp;
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? comp.bgColor : AppColors.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? comp.color : AppColors.cardBorder,
+                        width: isSelected ? 1.8 : 1.0,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: comp.color.withValues(alpha: 0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(comp.icon, size: 15, color: isSelected ? comp.color : AppColors.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          comp.name,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                            color: isSelected ? comp.color : AppColors.textPrimary,
+                          ),
+                        ),
+                        if (comp.formula.isNotEmpty && comp.formula != comp.name) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '(${comp.formula})',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: isSelected ? comp.color.withValues(alpha: 0.8) : AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildComponentDetailCard(_ProcessComponent comp) {
+    return Container(
+      key: ValueKey('comp_${comp.id}'),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: comp.bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: comp.color.withValues(alpha: 0.5), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: comp.color.withValues(alpha: 0.4)),
+                ),
+                child: Icon(comp.icon, size: 18, color: comp.color),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            comp.name,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: comp.color,
+                              letterSpacing: -0.2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (comp.formula.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              comp.formula,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Role: ${comp.role}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                onPressed: () => setState(() => _selectedComponent = null),
+                tooltip: 'Return to stage view',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            comp.description,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWhyThisWorksCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -620,6 +945,41 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
   }
 }
 
+class _ProcessComponent {
+  final String id;
+  final String name;
+  final String formula;
+  final String role;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+
+  const _ProcessComponent({
+    required this.id,
+    required this.name,
+    required this.formula,
+    required this.role,
+    required this.description,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+  });
+
+  factory _ProcessComponent.fromJson(Map<String, dynamic> json) {
+    return _ProcessComponent(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? json['title'] as String? ?? 'Component',
+      formula: json['formula'] as String? ?? json['subtitle'] as String? ?? '',
+      role: json['role'] as String? ?? 'Reactant / Factor',
+      description: json['description'] as String? ?? '',
+      icon: Icons.bubble_chart_rounded,
+      color: AppColors.tealPrimary,
+      bgColor: AppColors.tealLight,
+    );
+  }
+}
+
 class _ProcessStage {
   final int stageNumber;
   final String title;
@@ -660,3 +1020,4 @@ class _ProcessStage {
 
 /// Backwards-compatible alias for WorkflowVisualizer pointing to ProcessVisualization
 typedef WorkflowVisualizer = ProcessVisualization;
+

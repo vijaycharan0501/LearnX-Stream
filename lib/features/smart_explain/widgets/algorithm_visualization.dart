@@ -121,12 +121,16 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
     }
 
     _currentStepIndex = 0;
+    _tappedElementIndex = null;
   }
+
+  int? _tappedElementIndex;
 
   void _goToNextStep() {
     if (_currentStepIndex < _model.steps.length - 1) {
       setState(() {
         _currentStepIndex++;
+        _tappedElementIndex = null;
         if (_model.steps[_currentStepIndex].isFound) {
           _celebrationController.forward(from: 0.0);
         }
@@ -138,6 +142,7 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
     if (_currentStepIndex > 0) {
       setState(() {
         _currentStepIndex--;
+        _tappedElementIndex = null;
         if (_model.steps[_currentStepIndex].isFound) {
           _celebrationController.forward(from: 0.0);
         }
@@ -148,6 +153,7 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   void _restart() {
     setState(() {
       _currentStepIndex = 0;
+      _tappedElementIndex = null;
       _celebrationController.reset();
     });
   }
@@ -299,6 +305,8 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   }
 
   Widget _buildArrayStepContent(VisualizationStep step) {
+    final list = step.elements.isNotEmpty ? step.elements : _elements;
+
     return Column(
       key: ValueKey('algo_step_${step.stepNumber}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -333,7 +341,118 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
         ],
 
         _buildComparisonAndActionBox(step),
+
+        if (_tappedElementIndex != null && _tappedElementIndex! < list.length) ...[
+          const SizedBox(height: 14),
+          _buildTappedElementExploration(step, list),
+        ],
       ],
+    );
+  }
+
+  Widget _buildTappedElementExploration(VisualizationStep step, List<dynamic> list) {
+    final index = _tappedElementIndex!;
+    final value = list[index];
+    final isMid = step.midIndex == index;
+    final isEliminated = step.eliminatedIndices.contains(index);
+    final isFound = step.isFound && step.foundIndex == index;
+    final isActive = step.activeIndices.contains(index);
+
+    String badgeText = 'ELEMENT AT INDEX $index';
+    String title = 'Element: $value';
+    String desc = 'Currently part of the array representation.';
+    Color color = AppColors.tealPrimary;
+    Color bgColor = AppColors.tealLight;
+    Color borderColor = AppColors.tealBorder;
+    IconData icon = Icons.touch_app_rounded;
+
+    if (isFound) {
+      badgeText = 'TARGET FOUND MATCH';
+      title = 'Target $value Located at Index $index!';
+      desc = 'The middle element matches the target value ($_target). Binary search terminates successfully.';
+      color = AppColors.greenPrimary;
+      bgColor = AppColors.greenLight;
+      borderColor = AppColors.greenBorder;
+      icon = Icons.check_circle_rounded;
+    } else if (isMid) {
+      badgeText = 'CURRENT MIDDLE (PROBE)';
+      title = '$value is the Middle Element (MID)';
+      desc = 'The algorithm probes index $index to compare $value with Target ($_target). If target is greater, search the right half; if smaller, search the left half.';
+      color = AppColors.orangePrimary;
+      bgColor = AppColors.orangeLight;
+      borderColor = AppColors.orangeBorder;
+      icon = Icons.radar_rounded;
+    } else if (isEliminated) {
+      badgeText = 'ELIMINATED CANDIDATE';
+      title = '$value is Eliminated (Discarded)';
+      desc = 'This element has been safely eliminated from the search range because monotonic sorted order guarantees the target cannot reside in this partition.';
+      color = AppColors.textSecondary;
+      bgColor = AppColors.surfaceSecondary;
+      borderColor = AppColors.cardBorder;
+      icon = Icons.block_rounded;
+    } else if (isActive) {
+      badgeText = 'ACTIVE SEARCH CANDIDATE';
+      title = '$value is in Active Window';
+      desc = 'This element remains within the current active boundary [LOW..HIGH] and will be partitioned in subsequent comparisons.';
+      color = AppColors.bluePrimary;
+      bgColor = AppColors.blueLight;
+      borderColor = AppColors.blueBorder;
+      icon = Icons.search_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 8),
+              Text(
+                badgeText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => setState(() => _tappedElementIndex = null),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            desc,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -435,59 +554,75 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
                           : const SizedBox(height: 16),
                     ),
                     const SizedBox(height: 4),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      transform: Matrix4.diagonal3Values(scale, scale, 1.0),
-                      width: 46,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: borderColor,
-                          width: (isMid || isFound) ? 2.5 : 1.2,
-                        ),
-                        boxShadow: (isMid || isFound)
-                            ? [
-                                BoxShadow(
-                                  color: (isFound ? AppColors.greenPrimary : AppColors.orangePrimary)
-                                      .withValues(alpha: 0.25),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Center(
-                            child: Text(
-                              '$value',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: textColor,
-                                decoration: isEliminated ? TextDecoration.lineThrough : null,
-                                decorationColor: AppColors.textMuted.withValues(alpha: 0.5),
-                              ),
-                            ),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          if (_tappedElementIndex == index) {
+                            _tappedElementIndex = null;
+                          } else {
+                            _tappedElementIndex = index;
+                          }
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+                        width: 46,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: (_tappedElementIndex == index)
+                                ? AppColors.tealPrimary
+                                : borderColor,
+                            width: (_tappedElementIndex == index || isMid || isFound) ? 2.5 : 1.2,
                           ),
-                          if (isFound)
-                            Positioned(
-                              top: -6,
-                              right: -6,
-                              child: Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.greenPrimary,
-                                  shape: BoxShape.circle,
+                          boxShadow: (isMid || isFound || _tappedElementIndex == index)
+                              ? [
+                                  BoxShadow(
+                                    color: (isFound
+                                            ? AppColors.greenPrimary
+                                            : (isMid ? AppColors.orangePrimary : AppColors.tealPrimary))
+                                        .withValues(alpha: 0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Center(
+                              child: Text(
+                                '$value',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: textColor,
+                                  decoration: isEliminated ? TextDecoration.lineThrough : null,
+                                  decorationColor: AppColors.textMuted.withValues(alpha: 0.5),
                                 ),
-                                child: const Icon(Icons.check, size: 10, color: AppColors.textLight),
                               ),
                             ),
-                        ],
+                            if (isFound)
+                              Positioned(
+                                top: -6,
+                                right: -6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.greenPrimary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.check, size: 10, color: AppColors.textLight),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
