@@ -582,5 +582,123 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(AlgorithmVisualization), findsOneWidget);
     });
+
+    // -------------------------------------------------------------------------
+    // 6. Slow Learning Mode & Interactive Controls Tests
+    // -------------------------------------------------------------------------
+    testWidgets('AlgorithmVisualization supports Play, Pause, Restart, Previous, Next and step dots',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestApp(
+          const AlgorithmVisualization(
+            topic: 'Binary Search',
+            initialTarget: 60,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify controls are present
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+      // Verify step 1
+      expect(find.textContaining('Step 1 of'), findsOneWidget);
+
+      // Tap Play -> changes icon to Pause
+      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+
+      // Tap Pause -> changes icon back to Play
+      await tester.tap(find.byIcon(Icons.pause_rounded));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+      // Tap Next -> advances to Step 2
+      await tester.tap(find.text('Next'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('Step 2 of'), findsOneWidget);
+
+      // Tap Previous -> goes back to Step 1
+      await tester.tap(find.text('Previous'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('Step 1 of'), findsOneWidget);
+    });
+
+    testWidgets('ProcessVisualization supports Play, Pause, Restart, and Stage progression across Photosynthesis & TCP',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestApp(
+          const ProcessVisualization(
+            topic: 'Photosynthesis',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+      // Tap Next -> Stage 2
+      await tester.tap(find.text('Next'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Stage 2 of 3'), findsOneWidget);
+
+      // Tap Play
+      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+    });
+
+    testWidgets('ConceptMapVisualizer supports Guided Tour controls for OOP Inheritance',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestApp(
+          const ConceptMapVisualization(
+            topic: 'Object-Oriented Programming',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.textContaining('Pillar 1 of'), findsOneWidget);
+
+      // Tap Next -> Pillar 2
+      await tester.tap(find.text('Next'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('Pillar 2 of'), findsOneWidget);
+    });
+
+    testWidgets('SimulationVisualizer supports Guided Scenario Demo controls for Ohm\'s Law',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestApp(
+          const SimulationVisualization(
+            topic: 'Ohm\'s Law',
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.textContaining('Low Voltage + High Resistance'), findsOneWidget);
+
+      // Tap Next -> Scenario 2
+      await tester.tap(find.text('Next'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('High Voltage + High Resistance'), findsOneWidget);
+    });
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'topic_visualization_helper.dart';
@@ -8,7 +9,8 @@ import 'topic_visualization_helper.dart';
 /// 1. Hierarchical visual tree with level-based nodes and visual branch connectors.
 /// 2. Interactive node selection displaying rich definition, role, and practical real-world examples.
 /// 3. Dynamic layout supporting arbitrary concept maps (OOP, DBMS, Networking, Systems).
-/// 4. "Try it yourself" interactive explorer encouraging students to inspect all foundational pillars.
+/// 4. Guided Pillar Tour with [Previous] [Play/Pause] [Restart] [Next] slow pedagogical walkthrough.
+/// 5. "Try it yourself" interactive explorer encouraging students to inspect all foundational pillars.
 class ConceptMapVisualizer extends StatefulWidget {
   final String topic;
   final Map<String, dynamic>? visualizationData;
@@ -29,6 +31,8 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
   late List<_ConceptNode> _nodes;
   late String _whyWorksText;
   late _ConceptNode? _selectedNode;
+  bool _isPlaying = false;
+  Timer? _autoPlayTimer;
 
   @override
   void initState() {
@@ -37,11 +41,83 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
   }
 
   @override
+  void dispose() {
+    _autoPlayTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(covariant ConceptMapVisualizer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.visualizationData != widget.visualizationData ||
         oldWidget.topic != widget.topic) {
       _initFromData();
+    }
+  }
+
+  void _startAutoPlay() {
+    _autoPlayTimer?.cancel();
+    setState(() => _isPlaying = true);
+    _autoPlayTimer = Timer.periodic(const Duration(milliseconds: 2600), (timer) {
+      final curIdx = _selectedNodeIndex;
+      if (curIdx < _nodes.length - 1) {
+        _nextPillar(fromAutoPlay: true);
+      } else {
+        _stopAutoPlay();
+      }
+    });
+  }
+
+  void _stopAutoPlay() {
+    _autoPlayTimer?.cancel();
+    if (_isPlaying) {
+      setState(() => _isPlaying = false);
+    }
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopAutoPlay();
+    } else {
+      if (_selectedNodeIndex >= _nodes.length - 1) {
+        _restart();
+      }
+      _startAutoPlay();
+    }
+  }
+
+  int get _selectedNodeIndex {
+    if (_selectedNode == null) return 0;
+    final idx = _nodes.indexWhere((n) => n.id == _selectedNode!.id);
+    return idx >= 0 ? idx : 0;
+  }
+
+  void _nextPillar({bool fromAutoPlay = false}) {
+    if (!fromAutoPlay) _stopAutoPlay();
+    final curIdx = _selectedNodeIndex;
+    if (curIdx < _nodes.length - 1) {
+      setState(() {
+        _selectedNode = _nodes[curIdx + 1];
+      });
+    }
+  }
+
+  void _prevPillar() {
+    _stopAutoPlay();
+    final curIdx = _selectedNodeIndex;
+    if (curIdx > 0) {
+      setState(() {
+        _selectedNode = _nodes[curIdx - 1];
+      });
+    }
+  }
+
+  void _restart() {
+    _stopAutoPlay();
+    if (_nodes.isNotEmpty) {
+      setState(() {
+        _selectedNode = _nodes.first;
+      });
     }
   }
 
@@ -174,15 +250,38 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
                     ),
                   ),
                   const SizedBox(width: 8),
+
+                  // Pillar Progression Dots (● ● ● ○ ○)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(_nodes.length, (i) {
+                      final isActive = i == _selectedNodeIndex;
+                      final isDone = i < _selectedNodeIndex;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        width: isActive ? 16 : 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? AppColors.purplePrimary
+                              : (isDone ? AppColors.purplePrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.purpleLight,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Tap nodes to inspect',
-                      style: TextStyle(
+                    child: Text(
+                      'Pillar ${_selectedNodeIndex + 1} of ${_nodes.length}',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: AppColors.purplePrimary,
@@ -260,7 +359,10 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
                   final bgColor = _getNodeBgColor(index);
 
                   return InkWell(
-                    onTap: () => setState(() => _selectedNode = node),
+                    onTap: () {
+                      _stopAutoPlay();
+                      setState(() => _selectedNode = node);
+                    },
                     borderRadius: BorderRadius.circular(14),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -304,7 +406,11 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
               const SizedBox(height: 20),
 
               // Active Node Details Card (Definition + Practical Example)
-              if (_selectedNode != null) _buildSelectedNodeCard(_selectedNode!),
+              if (_selectedNode != null) ...[
+                _buildSelectedNodeCard(_selectedNode!),
+                const SizedBox(height: 18),
+                _buildTourControls(),
+              ],
             ],
           ),
         ),
@@ -399,6 +505,83 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildTourControls() {
+    final curIdx = _selectedNodeIndex;
+    final isFirst = curIdx == 0;
+    final isLast = curIdx == _nodes.length - 1;
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: isFirst ? null : _prevPillar,
+            icon: const Icon(Icons.arrow_back_rounded, size: 16),
+            label: const Text('Previous', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: AppColors.cardBorder),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: AppColors.surface,
+              disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: _isPlaying ? 'Pause Tour' : 'Play Tour',
+          onPressed: _togglePlay,
+          icon: Icon(
+            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 20,
+            color: AppColors.purplePrimary,
+          ),
+          style: IconButton.styleFrom(
+            padding: const EdgeInsets.all(12),
+            backgroundColor: _isPlaying ? AppColors.purpleLight : AppColors.surfaceSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _isPlaying ? AppColors.purplePrimary : AppColors.cardBorder,
+                width: _isPlaying ? 1.5 : 1.0,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _restart,
+          icon: const Icon(Icons.replay_rounded, size: 16),
+          label: const Text('Restart', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+            side: const BorderSide(color: AppColors.cardBorder),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.surfaceSecondary,
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: isLast ? _restart : () => _nextPillar(),
+            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 16),
+            label: Text(
+              isLast ? 'Restart' : 'Next',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.purplePrimary,
+              foregroundColor: AppColors.textLight,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

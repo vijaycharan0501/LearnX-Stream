@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/visualization_data_provider.dart';
@@ -10,7 +11,7 @@ import '../models/visual_explanation_models.dart';
 /// - Renders dynamically positioned pointers (e.g. LOW, MID, HIGH, LEFT, RIGHT, P1, P2) with arrows.
 /// - Compares elements dynamically (Target vs Probed elements).
 /// - Displays visual reduction flows and animated success/completion celebrations.
-/// - Clean bottom navigation controls [ ← Previous ] [ Restart ] [ Next → ].
+/// - Clean bottom navigation controls [ ← Previous ] [ ▶ Play / ⏸ Pause ] [ Restart ] [ Next → ].
 class AlgorithmVisualization extends StatefulWidget {
   final String topic;
   final int? initialTarget;
@@ -53,12 +54,6 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
       ),
     );
     _initFromData();
-  }
-
-  @override
-  void dispose() {
-    _celebrationController.dispose();
-    super.dispose();
   }
 
   @override
@@ -125,8 +120,48 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   }
 
   int? _tappedElementIndex;
+  bool _isPlaying = false;
+  Timer? _autoPlayTimer;
 
-  void _goToNextStep() {
+  @override
+  void dispose() {
+    _autoPlayTimer?.cancel();
+    _celebrationController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoPlay() {
+    _autoPlayTimer?.cancel();
+    setState(() => _isPlaying = true);
+    _autoPlayTimer = Timer.periodic(const Duration(milliseconds: 2400), (timer) {
+      if (_currentStepIndex < _model.steps.length - 1) {
+        _goToNextStep(fromAutoPlay: true);
+      } else {
+        _stopAutoPlay();
+      }
+    });
+  }
+
+  void _stopAutoPlay() {
+    _autoPlayTimer?.cancel();
+    if (_isPlaying) {
+      setState(() => _isPlaying = false);
+    }
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopAutoPlay();
+    } else {
+      if (_currentStepIndex >= _model.steps.length - 1) {
+        _restart();
+      }
+      _startAutoPlay();
+    }
+  }
+
+  void _goToNextStep({bool fromAutoPlay = false}) {
+    if (!fromAutoPlay) _stopAutoPlay();
     if (_currentStepIndex < _model.steps.length - 1) {
       setState(() {
         _currentStepIndex++;
@@ -139,6 +174,7 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   }
 
   void _goToPreviousStep() {
+    _stopAutoPlay();
     if (_currentStepIndex > 0) {
       setState(() {
         _currentStepIndex--;
@@ -151,6 +187,7 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   }
 
   void _restart() {
+    _stopAutoPlay();
     setState(() {
       _currentStepIndex = 0;
       _tappedElementIndex = null;
@@ -202,6 +239,7 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   }
 
   Widget _buildHeaderRow(VisualizationStep step) {
+    final totalSteps = step.totalSteps > 0 ? step.totalSteps : _model.steps.length;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -232,6 +270,27 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
         else
           const SizedBox.shrink(),
 
+        // Step Progression Dots (● ● ● ○ ○)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(totalSteps, (i) {
+            final isActive = i == _currentStepIndex;
+            final isDone = i < _currentStepIndex;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: isActive ? 16 : 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.tealPrimary
+                    : (isDone ? AppColors.tealPrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            );
+          }),
+        ),
+
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
@@ -240,7 +299,7 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
             border: Border.all(color: AppColors.blueBorder),
           ),
           child: Text(
-            'Step ${step.stepNumber} of ${step.totalSteps}',
+            'Step ${step.stepNumber} of $totalSteps',
             style: const TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w800,
@@ -960,7 +1019,28 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: _isPlaying ? 'Pause' : 'Play',
+          onPressed: _togglePlay,
+          icon: Icon(
+            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 20,
+            color: AppColors.tealPrimary,
+          ),
+          style: IconButton.styleFrom(
+            padding: const EdgeInsets.all(12),
+            backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
+                width: _isPlaying ? 1.5 : 1.0,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
         OutlinedButton.icon(
           onPressed: _restart,
           icon: const Icon(Icons.replay_rounded, size: 16),
@@ -969,14 +1049,14 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
           ),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
             side: const BorderSide(color: AppColors.cardBorder),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             backgroundColor: AppColors.surfaceSecondary,
             foregroundColor: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: isLastStep ? null : _goToNextStep,

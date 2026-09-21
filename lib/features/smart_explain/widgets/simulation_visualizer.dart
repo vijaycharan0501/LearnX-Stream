@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'topic_visualization_helper.dart';
@@ -7,8 +8,9 @@ import 'topic_visualization_helper.dart';
 /// Features:
 /// 1. Dynamic Circuit Model: Real-time visual bulb brightness, electron flow rate, and circuit elements.
 /// 2. Live sliders for Voltage & Resistance with instant mathematical recalculation of Current ($I = V / R$).
-/// 3. "What happens if resistance increases?" Socratic experimentation insight card.
-/// 4. "Try it yourself" interactive test scenarios and quick presets.
+/// 3. Guided Experiment Demo with [Previous] [Play Demo/Pause] [Restart] [Next] slow pedagogical walkthrough.
+/// 4. "What happens if resistance increases?" Socratic experimentation insight card.
+/// 5. "Try it yourself" interactive test scenarios and quick presets.
 class SimulationVisualizer extends StatefulWidget {
   final String topic;
   final Map<String, dynamic>? visualizationData;
@@ -47,6 +49,36 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
   late String _whyWorksText;
 
   late AnimationController _pulseController;
+  int _currentScenarioIndex = 0;
+  bool _isPlaying = false;
+  Timer? _demoTimer;
+
+  static const List<Map<String, dynamic>> _demoScenarios = [
+    {
+      'title': '1. Low Voltage + High Resistance',
+      'v': 3.0,
+      'r': 300.0,
+      'desc': 'Low electrical pressure with high opposition produces minimal current flow (~10 mA). The bulb is very dim.',
+    },
+    {
+      'title': '2. High Voltage + High Resistance',
+      'v': 18.0,
+      'r': 300.0,
+      'desc': 'Increasing voltage pushes electrons with 6x more force, raising current proportionally (~60 mA).',
+    },
+    {
+      'title': '3. High Voltage + Low Resistance',
+      'v': 18.0,
+      'r': 50.0,
+      'desc': 'Removing resistance creates a low-friction conduit, producing strong current flow (~360 mA). The bulb glows brightly.',
+    },
+    {
+      'title': '4. Balanced Standard Circuit',
+      'v': 9.0,
+      'r': 100.0,
+      'desc': 'Standard operating balance: 9V battery with 100Ω resistor generates a stable 90 mA.',
+    },
+  ];
 
   @override
   void initState() {
@@ -60,6 +92,7 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
 
   @override
   void dispose() {
+    _demoTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -71,6 +104,66 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
         oldWidget.topic != widget.topic) {
       _initFromData();
     }
+  }
+
+  void _applyScenario(int index) {
+    if (index >= 0 && index < _demoScenarios.length) {
+      final s = _demoScenarios[index];
+      setState(() {
+        _currentScenarioIndex = index;
+        _varAValue = (s['v'] as double).clamp(_varAMin, _varAMax);
+        _varBValue = (s['r'] as double).clamp(_varBMin, _varBMax);
+      });
+    }
+  }
+
+  void _startDemo() {
+    _demoTimer?.cancel();
+    setState(() => _isPlaying = true);
+    _demoTimer = Timer.periodic(const Duration(milliseconds: 2800), (timer) {
+      if (_currentScenarioIndex < _demoScenarios.length - 1) {
+        _nextScenario(fromDemo: true);
+      } else {
+        _stopDemo();
+      }
+    });
+  }
+
+  void _stopDemo() {
+    _demoTimer?.cancel();
+    if (_isPlaying) {
+      setState(() => _isPlaying = false);
+    }
+  }
+
+  void _toggleDemo() {
+    if (_isPlaying) {
+      _stopDemo();
+    } else {
+      if (_currentScenarioIndex >= _demoScenarios.length - 1) {
+        _restartDemo();
+      }
+      _startDemo();
+    }
+  }
+
+  void _nextScenario({bool fromDemo = false}) {
+    if (!fromDemo) _stopDemo();
+    if (_currentScenarioIndex < _demoScenarios.length - 1) {
+      _applyScenario(_currentScenarioIndex + 1);
+    }
+  }
+
+  void _prevScenario() {
+    _stopDemo();
+    if (_currentScenarioIndex > 0) {
+      _applyScenario(_currentScenarioIndex - 1);
+    }
+  }
+
+  void _restartDemo() {
+    _stopDemo();
+    _applyScenario(0);
   }
 
   void _initFromData() {
@@ -223,7 +316,10 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
                 max: _varAMax,
                 activeColor: AppColors.tealPrimary,
                 inactiveColor: AppColors.tealLight,
-                onChanged: (val) => setState(() => _varAValue = val),
+                onChanged: (val) {
+                  _stopDemo();
+                  setState(() => _varAValue = val);
+                },
               ),
               const SizedBox(height: 12),
 
@@ -236,8 +332,17 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
                 max: _varBMax,
                 activeColor: AppColors.orangePrimary,
                 inactiveColor: AppColors.orangeLight,
-                onChanged: (val) => setState(() => _varBValue = val),
+                onChanged: (val) {
+                  _stopDemo();
+                  setState(() => _varBValue = val);
+                },
               ),
+              const SizedBox(height: 18),
+
+              // Guided Scenario Walkthrough Banner & Controls
+              _buildGuidedScenarioBanner(),
+              const SizedBox(height: 14),
+              _buildDemoControls(),
             ],
           ),
         ),
@@ -249,6 +354,143 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
 
         // 3. "Try it yourself" Preset Challenges
         _buildTryItYourselfCard(),
+      ],
+    );
+  }
+
+  Widget _buildGuidedScenarioBanner() {
+    final s = _demoScenarios[_currentScenarioIndex];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.tealLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.tealBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  s['title'] as String,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.tealPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Dots
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(_demoScenarios.length, (i) {
+                  final isActive = i == _currentScenarioIndex;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    width: isActive ? 14 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: isActive ? AppColors.tealPrimary : AppColors.cardBorder,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            s['desc'] as String,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDemoControls() {
+    final isFirst = _currentScenarioIndex == 0;
+    final isLast = _currentScenarioIndex == _demoScenarios.length - 1;
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: isFirst ? null : _prevScenario,
+            icon: const Icon(Icons.arrow_back_rounded, size: 16),
+            label: const Text('Previous', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: AppColors.cardBorder),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: AppColors.surface,
+              disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: _isPlaying ? 'Pause Demo' : 'Play Demo',
+          onPressed: _toggleDemo,
+          icon: Icon(
+            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 20,
+            color: AppColors.tealPrimary,
+          ),
+          style: IconButton.styleFrom(
+            padding: const EdgeInsets.all(12),
+            backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
+                width: _isPlaying ? 1.5 : 1.0,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _restartDemo,
+          icon: const Icon(Icons.replay_rounded, size: 16),
+          label: const Text('Restart', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+            side: const BorderSide(color: AppColors.cardBorder),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.surfaceSecondary,
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: isLast ? _restartDemo : () => _nextScenario(),
+            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 16),
+            label: Text(
+              isLast ? 'Restart' : 'Next',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.tealPrimary,
+              foregroundColor: AppColors.textLight,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
       ],
     );
   }

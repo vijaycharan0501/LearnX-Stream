@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'topic_visualization_helper.dart';
@@ -34,16 +35,18 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
 
   late AnimationController _particleAnimController;
   late Animation<double> _particlePosition;
+  bool _isPlaying = false;
+  Timer? _autoPlayTimer;
 
   @override
   void initState() {
     super.initState();
     _particleAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 1200),
     );
     _particlePosition = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _particleAnimController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _particleAnimController, curve: Curves.easeInOutCubic),
     );
     _initFromData();
     _particleAnimController.forward();
@@ -51,6 +54,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
 
   @override
   void dispose() {
+    _autoPlayTimer?.cancel();
     _particleAnimController.dispose();
     super.dispose();
   }
@@ -212,7 +216,38 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     _selectedComponent = null;
   }
 
-  void _nextStage() {
+  void _startAutoPlay() {
+    _autoPlayTimer?.cancel();
+    setState(() => _isPlaying = true);
+    _autoPlayTimer = Timer.periodic(const Duration(milliseconds: 2600), (timer) {
+      if (_activeStageIndex < _stages.length - 1) {
+        _nextStage(fromAutoPlay: true);
+      } else {
+        _stopAutoPlay();
+      }
+    });
+  }
+
+  void _stopAutoPlay() {
+    _autoPlayTimer?.cancel();
+    if (_isPlaying) {
+      setState(() => _isPlaying = false);
+    }
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopAutoPlay();
+    } else {
+      if (_activeStageIndex >= _stages.length - 1) {
+        _restart();
+      }
+      _startAutoPlay();
+    }
+  }
+
+  void _nextStage({bool fromAutoPlay = false}) {
+    if (!fromAutoPlay) _stopAutoPlay();
     if (_activeStageIndex < _stages.length - 1) {
       setState(() {
         _activeStageIndex++;
@@ -223,6 +258,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
   }
 
   void _prevStage() {
+    _stopAutoPlay();
     if (_activeStageIndex > 0) {
       setState(() {
         _activeStageIndex--;
@@ -233,6 +269,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
   }
 
   void _restart() {
+    _stopAutoPlay();
     setState(() {
       _activeStageIndex = 0;
       _selectedComponent = null;
@@ -335,6 +372,29 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             ),
           ),
         ),
+        const SizedBox(width: 8),
+
+        // Stage Progression Dots (● ● ● ○ ○)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(_stages.length, (i) {
+            final isActive = i == _activeStageIndex;
+            final isDone = i < _activeStageIndex;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: isActive ? 16 : 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.tealPrimary
+                    : (isDone ? AppColors.tealPrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            );
+          }),
+        ),
+
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -648,20 +708,41 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: _isPlaying ? 'Pause' : 'Play',
+          onPressed: _togglePlay,
+          icon: Icon(
+            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 20,
+            color: AppColors.tealPrimary,
+          ),
+          style: IconButton.styleFrom(
+            padding: const EdgeInsets.all(12),
+            backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
+                width: _isPlaying ? 1.5 : 1.0,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
         OutlinedButton.icon(
           onPressed: _restart,
           icon: const Icon(Icons.replay_rounded, size: 16),
           label: const Text('Restart', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
             side: const BorderSide(color: AppColors.cardBorder),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             backgroundColor: AppColors.surfaceSecondary,
             foregroundColor: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: isLast ? _restart : _nextStage,
