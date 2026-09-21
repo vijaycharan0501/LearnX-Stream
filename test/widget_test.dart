@@ -392,9 +392,9 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      // Verify Error Dialog is shown
-      expect(find.text('Analysis Error'), findsOneWidget);
-      expect(find.text('Backend service temporarily unavailable.'), findsOneWidget);
+      // Verify Error Dialog is shown with student-friendly message
+      expect(find.text('Something went wrong'), findsOneWidget);
+      expect(find.text('Something went wrong while creating your lesson.'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
 
       // Tap "Try Again"

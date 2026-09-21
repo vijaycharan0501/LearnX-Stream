@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -90,15 +91,10 @@ class _MaterialPreviewScreenState extends State<MaterialPreviewScreen> {
         _isAnalyzing = false;
       });
 
-      String errorMessage;
-      if (e is ApiException) {
-        errorMessage = e.message;
-      } else {
-        errorMessage = 'An unexpected error occurred. Please check your connection and try again.';
-      }
+      const errorMessage = 'Something went wrong while creating your lesson.';
 
       _showErrorDialog(
-        title: 'Analysis Error',
+        title: 'Something went wrong',
         message: errorMessage,
         canRetry: true,
       );
@@ -110,72 +106,9 @@ class _MaterialPreviewScreenState extends State<MaterialPreviewScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return PopScope(
+        return const PopScope(
           canPop: false,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: AppColors.softShadow,
-                border: Border.all(color: AppColors.cardBorder),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.tealLight,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.tealBorder),
-                    ),
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealPrimary),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Analyzing your material...',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.3,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Understanding your question...',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.tealPrimary,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Building your visual explanation...',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
+          child: _PedagogicalLoadingDialog(),
         );
       },
     );
@@ -855,6 +788,118 @@ class _MaterialPreviewScreenState extends State<MaterialPreviewScreen> {
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.2,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PedagogicalLoadingDialog extends StatefulWidget {
+  const _PedagogicalLoadingDialog();
+
+  @override
+  State<_PedagogicalLoadingDialog> createState() => _PedagogicalLoadingDialogState();
+}
+
+class _PedagogicalLoadingDialogState extends State<_PedagogicalLoadingDialog> {
+  int _messageIndex = 0;
+  Timer? _messageTimer;
+
+  static const List<String> _loadingSteps = [
+    'Understanding your question...',
+    'Building your explanation...',
+    'Creating your visual...',
+    'Almost ready...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _messageTimer = Timer.periodic(const Duration(milliseconds: 2000), (timer) {
+      if (!mounted) return;
+      if (_messageIndex < _loadingSteps.length - 1) {
+        setState(() {
+          _messageIndex++;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentMessage = _loadingSteps[_messageIndex];
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: AppColors.softShadow,
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.tealLight,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.tealBorder),
+              ),
+              child: const CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealPrimary),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Analyzing your material...',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                currentMessage,
+                key: ValueKey<String>(currentMessage),
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.tealPrimary,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Preparing your deep learning experience',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
