@@ -377,12 +377,15 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          const Text(
-            "Let's understand it visually.",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+          const Expanded(
+            child: Text(
+              "Let's understand it visually.",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -661,12 +664,15 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                   children: [
                     const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.tealPrimary),
                     const SizedBox(width: 5),
-                    Text(
-                      'What is $displayTopicName?',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: Text(
+                        'What is $displayTopicName?',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

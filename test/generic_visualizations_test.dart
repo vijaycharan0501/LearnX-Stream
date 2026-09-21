@@ -11,6 +11,8 @@ import 'package:learnx_stream/features/smart_explain/widgets/interactive_diagram
 import 'package:learnx_stream/features/smart_explain/widgets/process_visualization.dart';
 import 'package:learnx_stream/features/smart_explain/widgets/simulation_visualization.dart';
 import 'package:learnx_stream/features/smart_explain/widgets/step_visualization.dart';
+import 'package:learnx_stream/features/material_input/models/study_material.dart';
+import 'package:learnx_stream/features/smart_explain/screens/smart_explain_screen.dart';
 import 'package:learnx_stream/features/smart_explain/widgets/topic_visualization_helper.dart';
 import 'package:learnx_stream/features/smart_explain/widgets/visualization_renderer.dart';
 
@@ -699,6 +701,251 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.textContaining('High Voltage + High Resistance'), findsOneWidget);
+    });
+
+    // -------------------------------------------------------------------------
+    // 7. Phase 6: Real UI Verification Tests (Photosynthesis, Binary Search, Ohm's Law, OOP, Mobile Viewports)
+    // -------------------------------------------------------------------------
+    testWidgets('Phase 6 Test 1: Photosynthesis renders large dominant visualization, labels, controls, and explanation',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final analysis = MaterialAnalysisResponse(
+        topic: 'Photosynthesis',
+        summary: 'Photosynthesis summary',
+        conceptOverview: 'Photosynthesis is the process by which green plants use sunlight to convert water and carbon dioxide into glucose and oxygen.',
+        keyIdea: 'Plants convert light energy into chemical energy stored in glucose.',
+        visualExplanation: 'Chloroplasts absorb sunlight energy to synthesize glucose and release oxygen.',
+        quickCheck: const QuickCheck(
+          question: 'What is the primary energy input for photosynthesis?',
+          options: ['Sunlight (Photons)', 'Soil nitrogen', 'Thermal heat'],
+          correctAnswer: 'Sunlight (Photons)',
+          explanation: 'Sunlight provides photon energy to power the light reactions.',
+        ),
+        concepts: [],
+        difficulty: 'medium',
+        prerequisites: [],
+        recommendedRepresentation: const RecommendedRepresentation(type: 'workflow', reason: 'Biological process'),
+        visualizationType: 'workflow',
+        visualizationData: {
+          'stages': [
+            {
+              'stage_number': 1,
+              'title': '1. Light Energy Absorption',
+              'subtitle': 'Photons strike chlorophyll',
+              'description': 'Solar light rays strike chlorophyll pigments, energizing electrons.',
+              'packet_label': 'Sunlight Energy',
+            },
+            {
+              'stage_number': 2,
+              'title': '2. Reactant Intake',
+              'subtitle': 'Water & CO2 diffuse into leaves',
+              'description': 'Water molecules and carbon dioxide enter leaf cells.',
+              'packet_label': 'Reactants',
+            },
+            {
+              'stage_number': 3,
+              'title': '3. Calvin Cycle & Synthesis',
+              'subtitle': 'Sugar synthesis and O2 release',
+              'description': 'Chloroplasts synthesize glucose and release oxygen.',
+              'packet_label': 'Glucose + O2',
+            },
+          ],
+        },
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: SmartExplainScreen(
+            analysis: analysis,
+            originalMaterial: StudyMaterial(
+              title: 'Photosynthesis',
+              sourceType: 'Typed Text',
+              rawText: 'Photosynthesis notes...',
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 1. Topic title & 2. Short concept explanation
+      expect(find.text('Photosynthesis'), findsWidgets);
+      expect(find.text('What is Photosynthesis?'), findsOneWidget);
+      expect(find.textContaining('green plants use sunlight to convert water and carbon dioxide'), findsOneWidget);
+
+      // 3. LARGE visualization & 4. Visual elements / labels
+      expect(find.text('SEE IT'), findsOneWidget);
+      expect(find.byType(ProcessVisualization), findsOneWidget);
+      expect(find.text('Sunlight'), findsWidgets);
+      expect(find.text('Water'), findsWidgets);
+      expect(find.text('CO₂'), findsWidgets);
+      expect(find.text('Glucose'), findsWidgets);
+      expect(find.text('Oxygen'), findsWidgets);
+
+      // 6. Animation & 7. Step indicator & 8. Controls
+      expect(find.text('Stage 1 of 3'), findsOneWidget);
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsWidgets);
+      expect(find.text('Next'), findsOneWidget);
+
+      // 9. "What's happening?" & 10. Key idea & 12. Quick Check
+      expect(find.text("What's happening?"), findsOneWidget);
+      expect(find.text('Key Idea'), findsOneWidget);
+      expect(find.textContaining('Plants convert light energy into chemical energy'), findsOneWidget);
+      expect(find.text('Quick Check'), findsOneWidget);
+      expect(find.text('What is the primary energy input for photosynthesis?'), findsOneWidget);
+    });
+
+    testWidgets('Phase 6 Test 2: Binary Search dynamically adapts to algorithmic array representation',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final analysis = MaterialAnalysisResponse(
+        topic: 'How does binary search work?',
+        summary: 'Binary Search algorithm',
+        conceptOverview: 'Binary search is an efficient algorithm for finding an item from a sorted list of items.',
+        keyIdea: 'Binary search eliminates half the search space with every comparison, achieving O(log N) time.',
+        concepts: [],
+        difficulty: 'medium',
+        prerequisites: [],
+        recommendedRepresentation: const RecommendedRepresentation(type: 'algorithm', reason: 'Search algorithm'),
+        visualizationType: 'algorithm',
+        visualizationData: {},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: SmartExplainScreen(
+            analysis: analysis,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(AlgorithmVisualization), findsOneWidget);
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+      expect(find.textContaining('MIDDLE'), findsWidgets);
+    });
+
+    testWidgets('Phase 6 Test 3: Ohm\'s Law renders electrical circuit simulation with V, I, R formula',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final analysis = MaterialAnalysisResponse(
+        topic: "Explain Ohm's Law",
+        summary: "Fundamental electrical relationship",
+        conceptOverview: "Ohm's Law states that current is directly proportional to voltage and inversely proportional to resistance.",
+        keyIdea: "I = V / R : Increasing voltage increases current; increasing resistance reduces current.",
+        concepts: [],
+        difficulty: "easy",
+        prerequisites: [],
+        recommendedRepresentation: const RecommendedRepresentation(type: "simulation", reason: "Circuit sim"),
+        visualizationType: "simulation",
+        visualizationData: {},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: SmartExplainScreen(
+            analysis: analysis,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(SimulationVisualization), findsOneWidget);
+      expect(find.textContaining('I = V / R'), findsWidgets);
+      expect(find.textContaining('Voltage'), findsWidgets);
+      expect(find.textContaining('Resistance'), findsWidgets);
+    });
+
+    testWidgets('Phase 6 Test 4: OOP Inheritance renders concept map hierarchy with parent & child classes',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final analysis = MaterialAnalysisResponse(
+        topic: "What is inheritance in OOP?",
+        summary: "OOP Inheritance",
+        conceptOverview: "Inheritance allows a subclass to inherit attributes and methods from a superclass.",
+        keyIdea: "Inheritance promotes code reuse by sharing common state and behaviors across class hierarchies.",
+        concepts: [],
+        difficulty: "medium",
+        prerequisites: [],
+        recommendedRepresentation: const RecommendedRepresentation(type: "concept_map", reason: "Class hierarchy"),
+        visualizationType: "concept_map",
+        visualizationData: {},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: SmartExplainScreen(
+            analysis: analysis,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(ConceptMapVisualization), findsOneWidget);
+      expect(find.textContaining('Pillar'), findsWidgets);
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+    });
+
+    testWidgets('Phase 6 Mobile Test: Verify clean rendering without overflows on 360px, 390px, and 430px screens',
+        (WidgetTester tester) async {
+      final widths = [360.0, 390.0, 430.0];
+
+      for (final width in widths) {
+        tester.view.physicalSize = Size(width, 1400.0);
+        tester.view.devicePixelRatio = 1.0;
+
+        final analysis = MaterialAnalysisResponse(
+          topic: 'Photosynthesis',
+          summary: 'Photosynthesis summary',
+          conceptOverview: 'Photosynthesis converts water and CO2 into glucose and oxygen.',
+          keyIdea: 'Plants convert light energy into chemical energy.',
+          concepts: [],
+          difficulty: 'medium',
+          prerequisites: [],
+          recommendedRepresentation: const RecommendedRepresentation(type: 'workflow', reason: 'Cycle'),
+          visualizationType: 'workflow',
+          visualizationData: {},
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: SmartExplainScreen(
+              analysis: analysis,
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+
+        // Verify no overflow errors were triggered
+        expect(tester.takeException(), isNull,
+            reason: 'Screen width $width px should not cause any RenderFlex or layout exceptions.');
+        expect(find.text('Photosynthesis'), findsWidgets);
+        expect(find.byType(ProcessVisualization), findsOneWidget);
+      }
     });
   });
 }

@@ -470,34 +470,41 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
         children: [
           // ── INPUT LAYER ──
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildConceptObject(
-                icon: Icons.wb_sunny_rounded,
-                name: 'Sunlight',
-                formula: 'Photons',
-                role: 'Energy',
-                color: AppColors.orangePrimary,
-                bgColor: AppColors.orangeLight,
-                isActive: stepNum == 1,
+              Expanded(
+                child: _buildConceptObject(
+                  icon: Icons.wb_sunny_rounded,
+                  name: 'Sunlight',
+                  formula: 'Photons',
+                  role: 'Energy',
+                  color: AppColors.orangePrimary,
+                  bgColor: AppColors.orangeLight,
+                  isActive: stepNum == 1,
+                ),
               ),
-              _buildConceptObject(
-                icon: Icons.cloud_outlined,
-                name: 'CO₂',
-                formula: 'Carbon Dioxide',
-                role: 'Gas',
-                color: AppColors.purplePrimary,
-                bgColor: AppColors.purpleLight,
-                isActive: stepNum == 1 || stepNum == 2,
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildConceptObject(
+                  icon: Icons.cloud_outlined,
+                  name: 'CO₂',
+                  formula: 'Carbon Dioxide',
+                  role: 'Gas',
+                  color: AppColors.purplePrimary,
+                  bgColor: AppColors.purpleLight,
+                  isActive: stepNum == 1 || stepNum == 2,
+                ),
               ),
-              _buildConceptObject(
-                icon: Icons.water_drop_rounded,
-                name: 'H₂O',
-                formula: 'Water',
-                role: 'Liquid',
-                color: AppColors.bluePrimary,
-                bgColor: AppColors.blueLight,
-                isActive: stepNum == 1 || stepNum == 2,
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildConceptObject(
+                  icon: Icons.water_drop_rounded,
+                  name: 'H₂O',
+                  formula: 'Water',
+                  role: 'Liquid',
+                  color: AppColors.bluePrimary,
+                  bgColor: AppColors.blueLight,
+                  isActive: stepNum == 1 || stepNum == 2,
+                ),
               ),
             ],
           ),
@@ -534,7 +541,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
               final auraGlow = isTransformStep ? (pulse * 8.0 + 4.0) : 0.0;
 
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: isTransformStep ? AppColors.greenLight : AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
@@ -563,34 +570,39 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
                       ),
                       child: Icon(
                         Icons.eco_rounded,
-                        size: 18,
+                        size: 16,
                         color: isTransformStep ? AppColors.textLight : AppColors.greenPrimary,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '🌿 LEAF / CHLOROPLAST',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                            color: AppColors.textPrimary,
-                          ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '🌿 LEAF / CHLOROPLAST',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              isTransformStep
+                                  ? '⚡ Reactions Active'
+                                  : 'Chemical Transformation Core',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: isTransformStep ? FontWeight.w800 : FontWeight.w500,
+                                color: isTransformStep ? AppColors.greenPrimary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          isTransformStep
-                            ? '⚡ Reactions Active'
-                            : 'Chemical Transformation Core',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: isTransformStep ? FontWeight.w800 : FontWeight.w500,
-                            color: isTransformStep ? AppColors.greenPrimary : AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -619,25 +631,29 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
 
           // ── OUTPUT LAYER ──
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildConceptObject(
-                icon: Icons.grain_rounded,
-                name: 'Glucose',
-                formula: 'C₆H₁₂O₆',
-                role: 'Energy Stored',
-                color: AppColors.greenPrimary,
-                bgColor: AppColors.greenLight,
-                isActive: isOutputStep,
+              Expanded(
+                child: _buildConceptObject(
+                  icon: Icons.grain_rounded,
+                  name: 'Glucose',
+                  formula: 'C₆H₁₂O₆',
+                  role: 'Energy Stored',
+                  color: AppColors.greenPrimary,
+                  bgColor: AppColors.greenLight,
+                  isActive: isOutputStep,
+                ),
               ),
-              _buildConceptObject(
-                icon: Icons.bubble_chart_rounded,
-                name: 'Oxygen',
-                formula: 'O₂',
-                role: 'Released Gas',
-                color: AppColors.tealPrimary,
-                bgColor: AppColors.tealLight,
-                isActive: isOutputStep,
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildConceptObject(
+                  icon: Icons.bubble_chart_rounded,
+                  name: 'Oxygen',
+                  formula: 'O₂',
+                  role: 'Released Gas',
+                  color: AppColors.tealPrimary,
+                  bgColor: AppColors.tealLight,
+                  isActive: isOutputStep,
+                ),
               ),
             ],
           ),
