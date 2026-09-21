@@ -1,15 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'topic_visualization_helper.dart';
 
 /// Generic Process & Workflow Visualization Component for LearnX STREAM.
 ///
-/// Handles multi-stage transformations, biological cycles, sequential workflows, and network protocols:
-/// - Biological Cycles: Photosynthesis (Sunlight -> Water Splitting -> Calvin Cycle), Mitosis, Krebs Cycle.
-/// - Network Protocols: TCP Three-Way Handshake (SYN -> SYN-ACK -> ACK), HTTP Request/Response, OAuth.
-/// - Engineering Pipelines: Compiler Front/Back-end, CI/CD, Database ACID Transactions.
-/// - Interactive particle/packet travel animation between actors/stages, stage checkpoints, and state indicators.
+/// Implements the Visualization-First spatial layout principle:
+/// - Large central visual canvas (Inputs -> Central Processing Leaf/Engine -> Outputs).
+/// - Direct element labels and chemical/system formulas.
+/// - Meaningful animated flow arrows and particle streams.
+/// - Clear visual hierarchy and single-action highlighting.
+/// - Synchronized "What's happening?" explanation and teaching-speed controls.
 class ProcessVisualization extends StatefulWidget {
   final String topic;
   final Map<String, dynamic>? visualizationData;
@@ -35,6 +37,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
 
   late AnimationController _particleAnimController;
   late Animation<double> _particlePosition;
+
   bool _isPlaying = false;
   Timer? _autoPlayTimer;
 
@@ -43,11 +46,12 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     super.initState();
     _particleAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),
     );
     _particlePosition = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _particleAnimController, curve: Curves.easeInOutCubic),
     );
+
     _initFromData();
     _particleAnimController.forward();
   }
@@ -68,6 +72,15 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     }
   }
 
+  bool get _isNetworkProtocol {
+    final lower = widget.topic.toLowerCase();
+    return lower.contains('tcp') ||
+        lower.contains('handshake') ||
+        lower.contains('http') ||
+        lower.contains('packet') ||
+        lower.contains('socket');
+  }
+
   void _initFromData() {
     final rawData = widget.visualizationData;
     final bool hasValidStages = rawData != null &&
@@ -81,8 +94,10 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     final rawActors = data['actors'] as List<dynamic>?;
     if (rawActors != null && rawActors.isNotEmpty) {
       _actors = rawActors.map((e) => e.toString()).toList();
+    } else if (_isNetworkProtocol) {
+      _actors = ['Client', 'Server'];
     } else {
-      _actors = ['Input Source', 'Processing Engine'];
+      _actors = ['Inputs', 'Process', 'Outputs'];
     }
 
     // 2. Stages / Steps
@@ -96,19 +111,41 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
       _stages = [
         _ProcessStage(
           stageNumber: 1,
-          title: '1. Initiation Phase',
-          subtitle: 'Establish baseline inputs',
-          description: 'Initial inputs are received and processed by the engine for ${widget.topic}.',
-          fromActor: _actors.first,
-          toActor: _actors.length > 1 ? _actors[1] : _actors.first,
-          packetLabel: 'Input Signals',
-          stateLabel: 'INITIATED',
-          icon: Icons.play_arrow_rounded,
+          title: '1. Light Energy Absorption',
+          subtitle: 'Photons excite chloroplast chlorophyll',
+          description: 'Solar light rays strike chlorophyll pigments, energizing electrons to initiate photosynthesis.',
+          fromActor: 'Sunlight',
+          toActor: 'Leaf Chloroplast',
+          packetLabel: 'Solar Photons',
+          stateLabel: 'LIGHT_ABSORPTION',
+          icon: Icons.wb_sunny_rounded,
+        ),
+        _ProcessStage(
+          stageNumber: 2,
+          title: '2. Water & Carbon Dioxide Intake',
+          subtitle: 'Roots draw H₂O, stomata absorb CO₂',
+          description: 'Water molecules enter from the roots while atmospheric carbon dioxide diffuses into leaf cells.',
+          fromActor: 'H₂O & CO₂',
+          toActor: 'Thylakoid Membrane',
+          packetLabel: 'Reactants Entering',
+          stateLabel: 'REACTANT_INTAKE',
+          icon: Icons.water_drop_rounded,
+        ),
+        _ProcessStage(
+          stageNumber: 3,
+          title: '3. Chemical Transformation (Calvin Cycle)',
+          subtitle: 'Light reactions split water and fix carbon',
+          description: 'Enzymes and chemical energy convert carbon dioxide and hydrogen into organic sugar compounds.',
+          fromActor: 'Reaction Core',
+          toActor: 'Stroma',
+          packetLabel: 'Carbon Fixation',
+          stateLabel: 'TRANSFORMATION',
+          icon: Icons.autorenew_rounded,
         ),
       ];
     }
 
-    // 3. Components / Molecules (e.g. for Photosynthesis, TCP Handshake)
+    // 3. Components / Reactants
     final lowerTopic = widget.topic.toLowerCase();
     final rawComps = data['components'] as List<dynamic>?;
     if (rawComps != null && rawComps.isNotEmpty) {
@@ -156,7 +193,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
           name: 'Glucose',
           formula: 'C₆H₁₂O₆',
           role: 'Stored Chemical Energy',
-          description: 'High-energy organic sugar synthesized in chloroplast stroma, fueling plant cellular respiration, growth, and the global food web.',
+          description: 'High-energy organic sugar synthesized in chloroplast stroma, fueling plant growth and cellular respiration.',
           icon: Icons.grain_rounded,
           color: AppColors.greenPrimary,
           bgColor: AppColors.greenLight,
@@ -166,13 +203,13 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
           name: 'Oxygen',
           formula: 'O₂',
           role: 'Vital Byproduct Gas',
-          description: 'Atmospheric gas generated directly from splitting water molecules during light reactions, sustaining aerobic respiration on Earth.',
+          description: 'Atmospheric gas generated directly from splitting water molecules during light reactions, sustaining aerobic respiration.',
           icon: Icons.bubble_chart_rounded,
           color: AppColors.tealPrimary,
           bgColor: AppColors.tealLight,
         ),
       ];
-    } else if (lowerTopic.contains('tcp') || lowerTopic.contains('handshake')) {
+    } else if (_isNetworkProtocol) {
       _components = [
         const _ProcessComponent(
           id: 'syn',
@@ -210,7 +247,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     }
 
     _whyWorksText = data['why_this_works'] as String? ??
-        'Breaking complex processes into sequential stages provides intuitive checkpoints for mastering the workflow.';
+        'Breaking complex processes into sequential spatial stages provides intuitive checkpoints for mastering the workflow.';
 
     _activeStageIndex = 0;
     _selectedComponent = null;
@@ -288,65 +325,64 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. Main Process Canvas Card
+        // 1. DOMINANT CENTRAL VISUALIZATION CANVAS (65-75% screen presence)
         Container(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.cardBorder),
             boxShadow: AppColors.softShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header Row: Topic Badge & Stage Pill
-              _buildHeader(currentStage),
-              const SizedBox(height: 20),
+              // Header Row: Topic Badge & Stage Counter
+              _buildCanvasHeader(currentStage),
+              const SizedBox(height: 14),
 
-              // Animated Actors & Traveling Particle Lane
-              _buildActorLane(currentStage),
-              const SizedBox(height: 22),
+              // Large Spatial Visual Diagram (Photosynthesis / Spatial Cycle OR Protocol Timeline)
+              _isNetworkProtocol
+                  ? _buildProtocolTimeline(currentStage)
+                  : _buildSpatialProcessCanvas(currentStage),
 
-              // Stage Progression Steps (1 -> 2 -> 3)
-              _buildStageCheckpoints(),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
 
-              // Interactive Component / Reactant Explorer Bar (if available)
-              if (_components.isNotEmpty) ...[
-                _buildComponentExplorer(),
-                const SizedBox(height: 18),
-              ],
-
-              // Active Stage or Component Detailed Explanation Box
+              // Active Stage or Component "What's happening?" Card
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: _selectedComponent != null
                     ? _buildComponentDetailCard(_selectedComponent!)
-                    : _buildStageDetailCard(currentStage),
+                    : _buildWhatsHappeningCard(currentStage),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
-              // Functional Navigation Bar: [Previous] [Restart] [Next]
-              _buildControls(isFirst, isLast),
+              // Unified Pacing Navigation Controls
+              _buildUnifiedControls(isFirst, isLast),
+              const SizedBox(height: 12),
+
+              // Interactive Element Chips (Tap to inspect)
+              if (_components.isNotEmpty) ...[
+                _buildComponentExplorer(),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
-        // 2. Pedagogical Summary Card
+        // 2. Crisp Key Idea Card
         _buildWhyThisWorksCard(),
       ],
     );
   }
 
-  Widget _buildHeader(_ProcessStage stage) {
+  Widget _buildCanvasHeader(_ProcessStage stage) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Flexible(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: AppColors.blueLight,
               borderRadius: BorderRadius.circular(10),
@@ -356,12 +392,12 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.sync_alt_rounded, size: 14, color: AppColors.bluePrimary),
-                const SizedBox(width: 6),
+                const SizedBox(width: 5),
                 Flexible(
                   child: Text(
                     widget.topic,
                     style: const TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: AppColors.bluePrimary,
                     ),
@@ -372,7 +408,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
 
         // Stage Progression Dots (● ● ● ○ ○)
         Row(
@@ -382,22 +418,22 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             final isDone = i < _activeStageIndex;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 2.5),
-              width: isActive ? 16 : 7,
-              height: 7,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              width: isActive ? 14 : 6,
+              height: 6,
               decoration: BoxDecoration(
                 color: isActive
                     ? AppColors.tealPrimary
                     : (isDone ? AppColors.tealPrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             );
           }),
         ),
 
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: AppColors.tealLight,
             borderRadius: BorderRadius.circular(10),
@@ -406,7 +442,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
           child: Text(
             'Stage ${stage.stageNumber} of ${_stages.length}',
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
               color: AppColors.tealPrimary,
             ),
@@ -416,13 +452,289 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     );
   }
 
-  Widget _buildActorLane(_ProcessStage stage) {
-    final fromActor = stage.fromActor.isNotEmpty ? stage.fromActor : (_actors.isNotEmpty ? _actors.first : 'Source');
-    final toActor = stage.toActor.isNotEmpty ? stage.toActor : (_actors.length > 1 ? _actors[1] : 'Target');
-    final isLeftToRight = _actors.isEmpty || _actors.first == fromActor;
+  /// Large Spatial Process Canvas (Inputs -> Central Leaf/Engine -> Outputs)
+  Widget _buildSpatialProcessCanvas(_ProcessStage stage) {
+    final stepNum = stage.stageNumber;
+    final isTransformStep = stepNum == 2 || stepNum == 3;
+    final isOutputStep = stepNum >= 3;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      constraints: const BoxConstraints(minHeight: 200),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        children: [
+          // ── INPUT LAYER ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildConceptObject(
+                icon: Icons.wb_sunny_rounded,
+                name: 'Sunlight',
+                formula: 'Photons',
+                role: 'Energy',
+                color: AppColors.orangePrimary,
+                bgColor: AppColors.orangeLight,
+                isActive: stepNum == 1,
+              ),
+              _buildConceptObject(
+                icon: Icons.cloud_outlined,
+                name: 'CO₂',
+                formula: 'Carbon Dioxide',
+                role: 'Gas',
+                color: AppColors.purplePrimary,
+                bgColor: AppColors.purpleLight,
+                isActive: stepNum == 1 || stepNum == 2,
+              ),
+              _buildConceptObject(
+                icon: Icons.water_drop_rounded,
+                name: 'H₂O',
+                formula: 'Water',
+                role: 'Liquid',
+                color: AppColors.bluePrimary,
+                bgColor: AppColors.blueLight,
+                isActive: stepNum == 1 || stepNum == 2,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // ── ANIMATED INPUT ARROWS ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildAnimatedArrow(
+                direction: Icons.arrow_downward_rounded,
+                color: AppColors.orangePrimary,
+                isActive: stepNum == 1,
+              ),
+              _buildAnimatedArrow(
+                direction: Icons.south_east_rounded,
+                color: AppColors.purplePrimary,
+                isActive: stepNum == 2,
+              ),
+              _buildAnimatedArrow(
+                direction: Icons.south_west_rounded,
+                color: AppColors.bluePrimary,
+                isActive: stepNum == 2,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // ── CENTRAL TRANSFORMATION PROCESSOR (Leaf / Chloroplast Core) ──
+          AnimatedBuilder(
+            animation: _particlePosition,
+            builder: (context, child) {
+              final pulse = _particlePosition.value;
+              final auraGlow = isTransformStep ? (pulse * 8.0 + 4.0) : 0.0;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isTransformStep ? AppColors.greenLight : AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isTransformStep ? AppColors.greenPrimary : AppColors.cardBorder,
+                    width: isTransformStep ? 2.0 : 1.0,
+                  ),
+                  boxShadow: isTransformStep
+                      ? [
+                          BoxShadow(
+                            color: AppColors.greenPrimary.withValues(alpha: 0.35),
+                            blurRadius: auraGlow,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: isTransformStep ? AppColors.greenPrimary : AppColors.greenLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.eco_rounded,
+                        size: 18,
+                        color: isTransformStep ? AppColors.textLight : AppColors.greenPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '🌿 LEAF / CHLOROPLAST',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          isTransformStep
+                            ? '⚡ Reactions Active'
+                            : 'Chemical Transformation Core',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: isTransformStep ? FontWeight.w800 : FontWeight.w500,
+                            color: isTransformStep ? AppColors.greenPrimary : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 6),
+
+          // ── ANIMATED OUTPUT ARROWS ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildAnimatedArrow(
+                direction: Icons.south_west_rounded,
+                color: AppColors.greenPrimary,
+                isActive: isOutputStep,
+              ),
+              _buildAnimatedArrow(
+                direction: Icons.south_east_rounded,
+                color: AppColors.tealPrimary,
+                isActive: isOutputStep,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // ── OUTPUT LAYER ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildConceptObject(
+                icon: Icons.grain_rounded,
+                name: 'Glucose',
+                formula: 'C₆H₁₂O₆',
+                role: 'Energy Stored',
+                color: AppColors.greenPrimary,
+                bgColor: AppColors.greenLight,
+                isActive: isOutputStep,
+              ),
+              _buildConceptObject(
+                icon: Icons.bubble_chart_rounded,
+                name: 'Oxygen',
+                formula: 'O₂',
+                role: 'Released Gas',
+                color: AppColors.tealPrimary,
+                bgColor: AppColors.tealLight,
+                isActive: isOutputStep,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConceptObject({
+    required IconData icon,
+    required String name,
+    required String formula,
+    required String role,
+    required Color color,
+    required Color bgColor,
+    required bool isActive,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: isActive ? bgColor : AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? color : AppColors.cardBorder,
+          width: isActive ? 1.8 : 1.0,
+        ),
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 2),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: isActive ? color : AppColors.textPrimary,
+            ),
+          ),
+          if (formula.isNotEmpty) ...[
+            Text(
+              formula,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w600,
+                color: isActive ? color.withValues(alpha: 0.9) : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnimatedArrow({
+    required IconData direction,
+    required Color color,
+    required bool isActive,
+  }) {
+    return AnimatedBuilder(
+      animation: _particlePosition,
+      builder: (context, child) {
+        final t = _particlePosition.value;
+        final opacity = isActive ? (0.4 + 0.6 * math.sin(t * math.pi)) : 0.25;
+
+        return Opacity(
+          opacity: opacity.clamp(0.2, 1.0),
+          child: Icon(
+            direction,
+            size: 18,
+            color: isActive ? color : AppColors.textMuted,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Protocol Timeline Sequence (Client <-> Server)
+  Widget _buildProtocolTimeline(_ProcessStage stage) {
+    final fromActor = stage.fromActor.isNotEmpty ? stage.fromActor : (_actors.isNotEmpty ? _actors.first : 'Client');
+    final toActor = stage.toActor.isNotEmpty ? stage.toActor : (_actors.length > 1 ? _actors[1] : 'Server');
+    final isLeftToRight = _actors.isEmpty || _actors.first.toLowerCase() == fromActor.toLowerCase();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(18),
@@ -433,23 +745,13 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildActorBadge(
-                fromActor,
-                isLeftToRight ? AppColors.bluePrimary : AppColors.purplePrimary,
-                isLeftToRight ? AppColors.blueLight : AppColors.purpleLight,
-                Icons.account_tree_rounded,
-              ),
-              _buildActorBadge(
-                toActor,
-                isLeftToRight ? AppColors.purplePrimary : AppColors.bluePrimary,
-                isLeftToRight ? AppColors.purpleLight : AppColors.blueLight,
-                Icons.memory_rounded,
-              ),
+              _buildActorBadge(fromActor, AppColors.bluePrimary, AppColors.blueLight),
+              _buildActorBadge(toActor, AppColors.purplePrimary, AppColors.purpleLight),
             ],
           ),
           const SizedBox(height: 14),
 
-          // Traveling Packet Animation
+          // Traveling Packet Animation Lane
           Stack(
             alignment: Alignment.center,
             children: [
@@ -477,7 +779,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.tealPrimary.withValues(alpha: 0.35),
-                            blurRadius: 8,
+                            blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
                         ],
@@ -509,9 +811,9 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
           ),
           const SizedBox(height: 10),
 
-          // State Status Badge (e.g. SYN_SENT, LIGHT_CAPTURED, COMMITTED)
+          // Protocol State Flag
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(8),
@@ -520,7 +822,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             child: Text(
               'State: ${stage.stateLabel}',
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 10.5,
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w700,
                 color: AppColors.textSecondary,
@@ -532,107 +834,34 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     );
   }
 
-  Widget _buildActorBadge(String name, Color color, Color bgColor, IconData icon) {
+  Widget _buildActorBadge(String name, Color color, Color bgColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
+      child: Text(
+        name,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
       ),
     );
   }
 
-  Widget _buildStageCheckpoints() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_stages.length, (index) {
-          final isCompleted = index < _activeStageIndex;
-          final isCurrent = index == _activeStageIndex;
-
-          Color borderColor = AppColors.cardBorder;
-          Color bgColor = AppColors.surface;
-          Color textColor = AppColors.textSecondary;
-
-          if (isCurrent) {
-            borderColor = AppColors.tealPrimary;
-            bgColor = AppColors.tealLight;
-            textColor = AppColors.tealPrimary;
-          } else if (isCompleted) {
-            borderColor = AppColors.greenBorder;
-            bgColor = AppColors.greenLight;
-            textColor = AppColors.greenPrimary;
-          }
-
-          return InkWell(
-            onTap: () {
-              setState(() {
-                _activeStageIndex = index;
-              });
-              _particleAnimController.forward(from: 0.0);
-            },
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: borderColor, width: isCurrent ? 1.8 : 1.0),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isCompleted
-                        ? Icons.check_circle_rounded
-                        : (isCurrent ? Icons.radio_button_checked : Icons.radio_button_unchecked),
-                    size: 13,
-                    color: textColor,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'Stage ${index + 1}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                      color: textColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildStageDetailCard(_ProcessStage stage) {
+  /// "What's happening?" single state card
+  Widget _buildWhatsHappeningCard(_ProcessStage stage) {
     return Container(
       key: ValueKey('stage_${stage.stageNumber}'),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSecondary,
+        color: AppColors.tealLight,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppColors.tealBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,50 +869,33 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.tealLight,
-                  borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.all(5),
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(stage.icon, size: 16, color: AppColors.tealPrimary),
+                child: const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.tealPrimary),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      stage.title,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    if (stage.subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        stage.subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ],
+              const SizedBox(width: 6),
+              const Text(
+                "WHAT'S HAPPENING?",
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                  color: AppColors.tealPrimary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
             stage.description,
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
-              height: 1.45,
+              height: 1.35,
             ),
           ),
         ],
@@ -691,16 +903,16 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
     );
   }
 
-  Widget _buildControls(bool isFirst, bool isLast) {
+  Widget _buildUnifiedControls(bool isFirst, bool isLast) {
     return Row(
       children: [
         Expanded(
           child: OutlinedButton.icon(
             onPressed: isFirst ? null : _prevStage,
-            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-            label: const Text('Previous', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            icon: const Icon(Icons.arrow_back_rounded, size: 15),
+            label: const Text('Previous', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 11),
               side: const BorderSide(color: AppColors.cardBorder),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: AppColors.surface,
@@ -708,17 +920,17 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         IconButton.filledTonal(
           tooltip: _isPlaying ? 'Pause' : 'Play',
           onPressed: _togglePlay,
           icon: Icon(
             _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            size: 20,
+            size: 18,
             color: AppColors.tealPrimary,
           ),
           style: IconButton.styleFrom(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -729,32 +941,32 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         OutlinedButton.icon(
           onPressed: _restart,
-          icon: const Icon(Icons.replay_rounded, size: 16),
-          label: const Text('Restart', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          icon: const Icon(Icons.replay_rounded, size: 15),
+          label: const Text('Restart', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
             side: const BorderSide(color: AppColors.cardBorder),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             backgroundColor: AppColors.surfaceSecondary,
             foregroundColor: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: isLast ? _restart : _nextStage,
-            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 16),
+            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 15),
             label: Text(
               isLast ? 'Restart' : 'Next',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.tealPrimary,
               foregroundColor: AppColors.textLight,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 11),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
@@ -765,125 +977,63 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
   }
 
   Widget _buildComponentExplorer() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Flexible(
-              child: Text(
-                'Interactive Process Elements',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.tealLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Tap elements to inspect role',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.tealPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: _components.map((comp) {
-              final isSelected = _selectedComponent?.id == comp.id;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: _components.map((comp) {
+          final isSelected = _selectedComponent?.id == comp.id;
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (_selectedComponent?.id == comp.id) {
-                        _selectedComponent = null;
-                      } else {
-                        _selectedComponent = comp;
-                      }
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? comp.bgColor : AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? comp.color : AppColors.cardBorder,
-                        width: isSelected ? 1.8 : 1.0,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: comp.color.withValues(alpha: 0.25),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(comp.icon, size: 15, color: isSelected ? comp.color : AppColors.textSecondary),
-                        const SizedBox(width: 6),
-                        Text(
-                          comp.name,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                            color: isSelected ? comp.color : AppColors.textPrimary,
-                          ),
-                        ),
-                        if (comp.formula.isNotEmpty && comp.formula != comp.name) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '(${comp.formula})',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected ? comp.color.withValues(alpha: 0.8) : AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedComponent = isSelected ? null : comp;
+                });
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isSelected ? comp.bgColor : AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? comp.color : AppColors.cardBorder,
+                    width: isSelected ? 1.5 : 1.0,
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(comp.icon, size: 13, color: isSelected ? comp.color : AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      comp.name,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected ? comp.color : AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildComponentDetailCard(_ProcessComponent comp) {
     return Container(
       key: ValueKey('comp_${comp.id}'),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: comp.bgColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: comp.color.withValues(alpha: 0.5), width: 1.5),
       ),
       child: Column(
@@ -891,82 +1041,34 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: comp.color.withValues(alpha: 0.4)),
-                ),
-                child: Icon(comp.icon, size: 18, color: comp.color),
-              ),
-              const SizedBox(width: 10),
+              Icon(comp.icon, size: 15, color: comp.color),
+              const SizedBox(width: 6),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            comp.name,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: comp.color,
-                              letterSpacing: -0.2,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (comp.formula.isNotEmpty) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              comp.formula,
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'monospace',
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Role: ${comp.role}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '${comp.name} (${comp.formula})',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: comp.color,
+                  ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.close_rounded, size: 15),
                 onPressed: () => setState(() => _selectedComponent = null),
-                tooltip: 'Return to stage view',
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           Text(
             comp.description,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppColors.textPrimary,
-              height: 1.45,
+              height: 1.35,
             ),
           ),
         ],
@@ -976,7 +1078,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
 
   Widget _buildWhyThisWorksCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -993,7 +1095,7 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
               Text(
                 'Why this works',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.2,
@@ -1001,23 +1103,14 @@ class _ProcessVisualizationState extends State<ProcessVisualization>
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.tealLight,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.tealBorder),
-            ),
-            child: Text(
-              _whyWorksText,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-                height: 1.45,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            _whyWorksText,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.45,
             ),
           ),
         ],
@@ -1101,4 +1194,3 @@ class _ProcessStage {
 
 /// Backwards-compatible alias for WorkflowVisualizer pointing to ProcessVisualization
 typedef WorkflowVisualizer = ProcessVisualization;
-

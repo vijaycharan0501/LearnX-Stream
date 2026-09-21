@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'topic_visualization_helper.dart';
 
-/// Rich Interactive Simulation for physical equations and reactive models (e.g. Ohm's Law).
+/// Rich Interactive Simulation for physical equations, circuits, and reactive models.
 ///
 /// Features:
-/// 1. Dynamic Circuit Model: Real-time visual bulb brightness, electron flow rate, and circuit elements.
-/// 2. Live sliders for Voltage & Resistance with instant mathematical recalculation of Current ($I = V / R$).
-/// 3. Guided Experiment Demo with [Previous] [Play Demo/Pause] [Restart] [Next] slow pedagogical walkthrough.
-/// 4. "What happens if resistance increases?" Socratic experimentation insight card.
-/// 5. "Try it yourself" interactive test scenarios and quick presets.
+/// 1. Closed Conceptual Circuit Canvas: Battery (V) -> Lightbulb (I) -> Resistor (R).
+/// 2. Animated Electron Particle Flow: Circulating dots with velocity proportional to current ($I = V / R$).
+/// 3. Dynamic Formula Bar: Real-time mathematical display ($I = \frac{V}{R} = \frac{12.0\text{V}}{4.0\Omega} = 3.00\text{A}$).
+/// 4. Interactive Sliders: Live Voltage ($1\text{V} - 24\text{V}$) and Resistance ($1\Omega - 20\Omega$) controls.
+/// 5. Guided Experiment Scenarios with [Previous] [Play Demo/Pause] [Restart] [Next] slow pedagogical pacing.
+/// 6. Synchronous "What's happening?" explanation and concise Key Idea takeaway.
 class SimulationVisualizer extends StatefulWidget {
   final String topic;
   final Map<String, dynamic>? visualizationData;
@@ -48,7 +49,7 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
   late String _experimentAnswer;
   late String _whyWorksText;
 
-  late AnimationController _pulseController;
+  late AnimationController _electronAnimController;
   int _currentScenarioIndex = 0;
   bool _isPlaying = false;
   Timer? _demoTimer;
@@ -56,44 +57,45 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
   static const List<Map<String, dynamic>> _demoScenarios = [
     {
       'title': '1. Low Voltage + High Resistance',
-      'v': 3.0,
-      'r': 300.0,
-      'desc': 'Low electrical pressure with high opposition produces minimal current flow (~10 mA). The bulb is very dim.',
+      'v': 4.0,
+      'r': 16.0,
+      'desc': 'Low electrical pressure with high resistance produces slow electron flow (0.25 A). The bulb is very dim.',
     },
     {
       'title': '2. High Voltage + High Resistance',
-      'v': 18.0,
-      'r': 300.0,
-      'desc': 'Increasing voltage pushes electrons with 6x more force, raising current proportionally (~60 mA).',
+      'v': 20.0,
+      'r': 16.0,
+      'desc': 'Increasing voltage pushes electrons with 5x more force, raising current proportionally (1.25 A).',
     },
     {
       'title': '3. High Voltage + Low Resistance',
-      'v': 18.0,
-      'r': 50.0,
-      'desc': 'Removing resistance creates a low-friction conduit, producing strong current flow (~360 mA). The bulb glows brightly.',
+      'v': 20.0,
+      'r': 4.0,
+      'desc': 'Decreasing resistance allows electrons to flow freely, producing strong current (5.00 A). The bulb glows brightly.',
     },
     {
       'title': '4. Balanced Standard Circuit',
-      'v': 9.0,
-      'r': 100.0,
-      'desc': 'Standard operating balance: 9V battery with 100Ω resistor generates a stable 90 mA.',
+      'v': 12.0,
+      'r': 4.0,
+      'desc': 'Standard operating balance: 12V battery with 4Ω resistor generates a steady 3.00 A current.',
     },
   ];
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
+    _electronAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+
     _initFromData();
   }
 
   @override
   void dispose() {
     _demoTimer?.cancel();
-    _pulseController.dispose();
+    _electronAnimController.dispose();
     super.dispose();
   }
 
@@ -168,84 +170,92 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
 
   void _initFromData() {
     final rawData = widget.visualizationData;
-    final bool hasValidControls = rawData != null &&
-        rawData['controls'] is List &&
-        (rawData['controls'] as List).isNotEmpty;
+    final bool hasValidSimulation = rawData != null &&
+        (rawData['formula'] != null ||
+            rawData['variable_a'] != null ||
+            rawData['primary_output'] != null ||
+            rawData['controls'] != null);
 
-    final data = hasValidControls
+    final data = hasValidSimulation
         ? rawData
         : TopicVisualizationHelper.getSimulationData(widget.topic, rawData);
 
-    _formula = data['formula'] as String? ?? 'V = I × R';
-    _secondaryFormula = data['secondary_formula'] as String? ?? 'I = V / R';
+    _formula = data['formula'] as String? ?? 'I = V / R';
+    _secondaryFormula = data['secondary_formula'] as String? ?? 'V = I × R';
 
-    final output = data['primary_output'] as Map<String, dynamic>? ?? {};
-    _outputLabel = output['label'] as String? ?? 'Current (I)';
-    _outputUnit = output['unit'] as String? ?? 'mA';
+    final primaryOutput = data['primary_output'] as Map<String, dynamic>?;
+    _outputLabel = primaryOutput?['label'] as String? ?? data['output_label'] as String? ?? 'Current (I)';
+    _outputUnit = primaryOutput?['unit'] as String? ?? data['output_unit'] as String? ?? 'A';
 
     final controls = data['controls'] as List<dynamic>?;
     if (controls != null && controls.isNotEmpty) {
-      final cA = controls[0] as Map<String, dynamic>? ?? {};
-      _varALabel = cA['label'] as String? ?? 'Voltage (Push Force)';
-      _varAUnit = cA['unit'] as String? ?? 'V';
-      _varAMin = (cA['min'] as num?)?.toDouble() ?? 1.0;
-      _varAMax = (cA['max'] as num?)?.toDouble() ?? 24.0;
-      _varAValue = (cA['initial'] as num?)?.toDouble() ?? 9.0;
+      final c0 = controls[0] as Map<String, dynamic>;
+      _varALabel = c0['label'] as String? ?? 'Voltage (V)';
+      _varAUnit = c0['unit'] as String? ?? 'V';
+      _varAMin = (c0['min'] as num?)?.toDouble() ?? 1.0;
+      _varAMax = (c0['max'] as num?)?.toDouble() ?? 30.0;
+      _varAValue = (c0['initial'] as num?)?.toDouble() ?? (c0['default'] as num?)?.toDouble() ?? 12.0;
 
       if (controls.length > 1) {
-        final cB = controls[1] as Map<String, dynamic>? ?? {};
-        _varBLabel = cB['label'] as String? ?? 'Resistance (Obstacle)';
-        _varBUnit = cB['unit'] as String? ?? 'Ω';
-        _varBMin = (cB['min'] as num?)?.toDouble() ?? 10.0;
-        _varBMax = (cB['max'] as num?)?.toDouble() ?? 500.0;
-        _varBValue = (cB['initial'] as num?)?.toDouble() ?? 100.0;
-      } else {
-        _varBLabel = 'Resistance (Obstacle)';
-        _varBUnit = 'Ω';
-        _varBMin = 10.0;
-        _varBMax = 500.0;
-        _varBValue = 100.0;
+        final c1 = controls[1] as Map<String, dynamic>;
+        _varBLabel = c1['label'] as String? ?? 'Resistance (R)';
+        _varBUnit = c1['unit'] as String? ?? 'Ω';
+        _varBMin = (c1['min'] as num?)?.toDouble() ?? 1.0;
+        _varBMax = (c1['max'] as num?)?.toDouble() ?? 600.0;
+        _varBValue = (c1['initial'] as num?)?.toDouble() ?? (c1['default'] as num?)?.toDouble() ?? 120.0;
       }
     } else {
-      _varALabel = 'Voltage (Push Force)';
-      _varAUnit = 'V';
-      _varAMin = 1.0;
-      _varAMax = 24.0;
-      _varAValue = 9.0;
+      final varA = data['variable_a'] as Map<String, dynamic>? ?? {};
+      _varALabel = varA['label'] as String? ?? 'Voltage (V)';
+      _varAUnit = varA['unit'] as String? ?? 'V';
+      _varAMin = (varA['min'] as num?)?.toDouble() ?? 1.0;
+      _varAMax = (varA['max'] as num?)?.toDouble() ?? 24.0;
+      _varAValue = (varA['default'] as num?)?.toDouble() ?? 12.0;
 
-      _varBLabel = 'Resistance (Obstacle)';
-      _varBUnit = 'Ω';
-      _varBMin = 10.0;
-      _varBMax = 500.0;
-      _varBValue = 100.0;
+      final varB = data['variable_b'] as Map<String, dynamic>? ?? {};
+      _varBLabel = varB['label'] as String? ?? 'Resistance (R)';
+      _varBUnit = varB['unit'] as String? ?? 'Ω';
+      _varBMin = (varB['min'] as num?)?.toDouble() ?? 1.0;
+      _varBMax = (varB['max'] as num?)?.toDouble() ?? 20.0;
+      _varBValue = (varB['default'] as num?)?.toDouble() ?? 4.0;
     }
 
-    _experimentQuestion = data['experiment_question'] as String? ?? 'What happens if resistance increases?';
-    _experimentAnswer = data['experiment_answer'] as String? ??
-        'Higher resistance restricts electron flow, reducing Current and causing the bulb to dim.';
+    final experiment = data['experiment'] as Map<String, dynamic>? ?? {};
+    _experimentQuestion = experiment['question'] as String? ??
+        'What happens to current (I) when resistance (R) increases?';
+    _experimentAnswer = experiment['answer'] as String? ??
+        'Because resistance opposes electron flow, increasing resistance causes current to decrease inversely when voltage is constant.';
+
     _whyWorksText = data['why_this_works'] as String? ??
-        'Current flows when Voltage pushes electrons through Resistance. Increasing voltage increases current, while higher resistance restricts the flow.';
+        'Voltage acts as electrical pressure, while resistance opposes flow. Current is the resulting rate of charge movement (I = V / R).';
+
+    _currentScenarioIndex = 0;
   }
 
-  double get _calculatedCurrentMa {
+  double get _calculatedOutput {
     if (_varBValue <= 0) return 0.0;
-    return (_varAValue / _varBValue) * 1000;
+    final ratio = _varAValue / _varBValue;
+    if (_outputUnit.toLowerCase() == 'ma') {
+      return ratio * 1000.0;
+    }
+    return ratio;
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentMa = _calculatedCurrentMa;
-    final glowIntensity = (currentMa / 150).clamp(0.08, 1.0);
+    final currentA = _calculatedOutput;
+    final currentAmps = _outputUnit.toLowerCase() == 'ma' ? currentA / 1000.0 : currentA;
+    final glowIntensity = (currentAmps / 6.0).clamp(0.1, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. Main Interactive Simulation Canvas
+        // 1. DOMINANT CIRCUIT VISUALIZATION CANVAS
         Container(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.cardBorder),
             boxShadow: AppColors.softShadow,
           ),
@@ -253,61 +263,26 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header: Topic, Formulas & Real-time Output
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.topic.isNotEmpty ? widget.topic : "Ohm's Law",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$_formula  •  $_secondaryFormula',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.tealPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.tealLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.tealBorder),
-                    ),
-                    child: Text(
-                      '$_outputLabel: ${currentMa.toStringAsFixed(1)} $_outputUnit',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.tealPrimary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              _buildHeader(currentA),
+              const SizedBox(height: 14),
 
-              // Visual Circuit Representation (Battery -> Resistor -> Glowing Bulb)
-              _buildCircuitVisual(currentMa, glowIntensity),
-              const SizedBox(height: 20),
+              // Visual Closed Circuit Schematic (Battery -> Bulb -> Resistor Loop)
+              _buildClosedCircuitCanvas(currentA, glowIntensity),
+              const SizedBox(height: 14),
 
-              // Voltage Control Slider
+              // Dynamic Mathematical Calculation Bar
+              _buildFormulaCalculationBar(currentA),
+              const SizedBox(height: 14),
+
+              // Guided Scenario Walkthrough Banner
+              _buildGuidedScenarioBanner(),
+              const SizedBox(height: 12),
+
+              // Unified Demo Pacing Controls
+              _buildDemoControls(),
+              const SizedBox(height: 16),
+
+              // Interactive Voltage Slider
               _buildSliderRow(
                 label: _varALabel,
                 valueText: '${_varAValue.toStringAsFixed(1)} $_varAUnit',
@@ -321,12 +296,12 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
                   setState(() => _varAValue = val);
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Resistance Control Slider
+              // Interactive Resistance Slider
               _buildSliderRow(
                 label: _varBLabel,
-                valueText: '${_varBValue.toInt()} $_varBUnit',
+                valueText: '${_varBValue.toStringAsFixed(1)} $_varBUnit',
                 value: _varBValue.clamp(_varBMin, _varBMax),
                 min: _varBMin,
                 max: _varBMax,
@@ -337,31 +312,358 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
                   setState(() => _varBValue = val);
                 },
               ),
-              const SizedBox(height: 18),
-
-              // Guided Scenario Walkthrough Banner & Controls
-              _buildGuidedScenarioBanner(),
-              const SizedBox(height: 14),
-              _buildDemoControls(),
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
-        // 2. "What happens if resistance increases?" Experimentation Card
+        // 2. "Why this works" Key Takeaway
+        _buildWhyThisWorksCard(),
+        const SizedBox(height: 16),
+
+        // 3. Socratic Experimentation Insight Card
         _buildExperimentationCard(),
-        const SizedBox(height: 18),
-
-        // 3. "Try it yourself" Preset Challenges
-        _buildTryItYourselfCard(),
       ],
+    );
+  }
+
+  Widget _buildHeader(double currentA) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.topic.isNotEmpty ? widget.topic : "Ohm's Law",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$_formula  •  $_secondaryFormula',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.tealPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.tealLight,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.tealBorder),
+          ),
+          child: Text(
+            '$_outputLabel: ${_outputUnit.toLowerCase() == 'ma' ? currentA.toStringAsFixed(1) : currentA.toStringAsFixed(2)} $_outputUnit',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.tealPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Large Conceptual Circuit Schematic (Battery on left, Bulb on top, Resistor on right)
+  Widget _buildClosedCircuitCanvas(double currentA, double glowIntensity) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 180),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        children: [
+          // Top Wire: Light Bulb Output
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildCircuitComponent(
+                icon: Icons.lightbulb_rounded,
+                label: '💡 Lightbulb Load',
+                value: '${(glowIntensity * 100).toInt()}% Luminescence',
+                color: Color.lerp(AppColors.textMuted, AppColors.orangePrimary, glowIntensity)!,
+                bgColor: Color.lerp(AppColors.surface, AppColors.orangeLight, glowIntensity)!,
+                glow: glowIntensity > 0.35,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Middle Row: Left Battery <---> Right Resistor with connecting wires & electron flow
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Battery / Voltage Source
+              _buildCircuitComponent(
+                icon: Icons.battery_charging_full_rounded,
+                label: '🔋 Voltage Source',
+                value: '${_varAValue.toStringAsFixed(1)} V',
+                color: AppColors.tealPrimary,
+                bgColor: AppColors.tealLight,
+              ),
+
+              // Animated Electron Wire Path
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      AnimatedBuilder(
+                        animation: _electronAnimController,
+                        builder: (context, child) {
+                          final t = _electronAnimController.value;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(4, (i) {
+                              final offset = (t + (i * 0.25)) % 1.0;
+                              return Transform.translate(
+                                offset: Offset((offset - 0.5) * 50, 0),
+                                child: Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    color: currentA > 2.0 ? AppColors.orangePrimary : AppColors.tealPrimary,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.tealPrimary.withValues(alpha: 0.5),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Resistor Obstacle
+              _buildCircuitComponent(
+                icon: Icons.tune_rounded,
+                label: 'Ω Resistor Load',
+                value: '${_varBValue.toStringAsFixed(1)} Ω',
+                color: AppColors.orangePrimary,
+                bgColor: AppColors.orangeLight,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Flow Rate Status Indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.electric_bolt_rounded,
+                  size: 13,
+                  color: currentA > 2.5 ? AppColors.orangePrimary : AppColors.tealPrimary,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'Flow Rate: ${currentA.toStringAsFixed(2)} A (${currentA > 3.0 ? "High Current" : (currentA > 1.0 ? "Moderate Flow" : "Low Current")})',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircuitComponent({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required Color bgColor,
+    bool glow = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
+        boxShadow: glow
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormulaCalculationBar(double currentA) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.tealLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.tealBorder),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.calculate_rounded, size: 15, color: AppColors.tealPrimary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'I = V / R  =  ${_varAValue.toStringAsFixed(1)}V / ${_varBValue.toStringAsFixed(1)}Ω  =  ${_outputUnit.toLowerCase() == 'ma' ? currentA.toStringAsFixed(1) : currentA.toStringAsFixed(2)} $_outputUnit',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'monospace',
+                  color: AppColors.tealPrimary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliderRow({
+    required String label,
+    required String valueText,
+    required double value,
+    required double min,
+    required double max,
+    required Color activeColor,
+    required Color inactiveColor,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: activeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  valueText,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'monospace',
+                    color: activeColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderThemeData(
+              activeTrackColor: activeColor,
+              inactiveTrackColor: inactiveColor,
+              thumbColor: activeColor,
+              trackHeight: 3.5,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+            ),
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildGuidedScenarioBanner() {
     final s = _demoScenarios[_currentScenarioIndex];
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.tealLight,
         borderRadius: BorderRadius.circular(14),
@@ -377,7 +679,7 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
                 child: Text(
                   s['title'] as String,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                     color: AppColors.tealPrimary,
                   ),
@@ -404,14 +706,14 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             s['desc'] as String,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: FontWeight.w500,
               color: AppColors.textPrimary,
-              height: 1.4,
+              height: 1.35,
             ),
           ),
         ],
@@ -428,10 +730,10 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
         Expanded(
           child: OutlinedButton.icon(
             onPressed: isFirst ? null : _prevScenario,
-            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-            label: const Text('Previous', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            icon: const Icon(Icons.arrow_back_rounded, size: 15),
+            label: const Text('Previous', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 11),
               side: const BorderSide(color: AppColors.cardBorder),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: AppColors.surface,
@@ -439,17 +741,17 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         IconButton.filledTonal(
           tooltip: _isPlaying ? 'Pause Demo' : 'Play Demo',
           onPressed: _toggleDemo,
           icon: Icon(
             _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            size: 20,
+            size: 18,
             color: AppColors.tealPrimary,
           ),
           style: IconButton.styleFrom(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -460,32 +762,32 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         OutlinedButton.icon(
           onPressed: _restartDemo,
-          icon: const Icon(Icons.replay_rounded, size: 16),
-          label: const Text('Restart', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          icon: const Icon(Icons.replay_rounded, size: 15),
+          label: const Text('Restart', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
             side: const BorderSide(color: AppColors.cardBorder),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             backgroundColor: AppColors.surfaceSecondary,
             foregroundColor: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: isLast ? _restartDemo : () => _nextScenario(),
-            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 16),
+            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 15),
             label: Text(
               isLast ? 'Restart' : 'Next',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.tealPrimary,
               foregroundColor: AppColors.textLight,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 11),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
@@ -495,256 +797,9 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
     );
   }
 
-  Widget _buildCircuitVisual(double currentMa, double glowIntensity) {
+  Widget _buildWhyThisWorksCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSecondary,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Battery / Voltage Source
-              _buildCircuitComponent(
-                icon: Icons.battery_charging_full_rounded,
-                label: 'Battery Source',
-                value: '${_varAValue.toStringAsFixed(1)} V',
-                color: AppColors.tealPrimary,
-                bgColor: AppColors.tealLight,
-              ),
-
-              // Flow Arrow
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  final pulse = (_pulseController.value * 0.4 + 0.6);
-                  return Opacity(
-                    opacity: glowIntensity.clamp(0.3, 1.0) * pulse,
-                    child: const Icon(Icons.arrow_forward_rounded, color: AppColors.tealPrimary, size: 20),
-                  );
-                },
-              ),
-
-              // Resistor Obstacle
-              _buildCircuitComponent(
-                icon: Icons.tune_rounded,
-                label: 'Resistor Drag',
-                value: '${_varBValue.toInt()} Ω',
-                color: AppColors.orangePrimary,
-                bgColor: AppColors.orangeLight,
-              ),
-
-              // Flow Arrow
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  final pulse = (_pulseController.value * 0.4 + 0.6);
-                  return Opacity(
-                    opacity: glowIntensity.clamp(0.3, 1.0) * pulse,
-                    child: const Icon(Icons.arrow_forward_rounded, color: AppColors.tealPrimary, size: 20),
-                  );
-                },
-              ),
-
-              // Glowing Light Bulb Output
-              _buildCircuitComponent(
-                icon: Icons.lightbulb_rounded,
-                label: 'Bulb Output',
-                value: '${(glowIntensity * 100).toInt()}% glow',
-                color: Color.lerp(AppColors.textMuted, AppColors.orangePrimary, glowIntensity)!,
-                bgColor: Color.lerp(AppColors.surface, AppColors.orangeLight, glowIntensity)!,
-                glow: glowIntensity > 0.4,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Dynamic Current Status Pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.cardBorder),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.electric_bolt_rounded,
-                  size: 15,
-                  color: currentMa > 80 ? AppColors.orangePrimary : AppColors.tealPrimary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Flow Rate: ${currentMa.toStringAsFixed(1)} mA (${currentMa > 120 ? "High Current" : (currentMa > 50 ? "Moderate Flow" : "Low Current")})',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCircuitComponent({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required Color bgColor,
-    bool glow = false,
-  }) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
-            boxShadow: glow
-                ? [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Icon(icon, color: color, size: 24),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-        ),
-        Text(
-          value,
-          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: color),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSliderRow({
-    required String label,
-    required String valueText,
-    required double value,
-    required double min,
-    required double max,
-    required Color activeColor,
-    required Color inactiveColor,
-    required ValueChanged<double> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            Text(
-              valueText,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: activeColor),
-            ),
-          ],
-        ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          activeColor: activeColor,
-          inactiveColor: inactiveColor,
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExperimentationCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.cardBorder),
-        boxShadow: AppColors.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.psychology_rounded, size: 18, color: AppColors.orangePrimary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _experimentQuestion,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.orangeLight,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.orangeBorder),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _experimentAnswer,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _whyWorksText,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTryItYourselfCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -756,12 +811,12 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
         children: [
           const Row(
             children: [
-              Icon(Icons.science_rounded, size: 18, color: AppColors.tealPrimary),
+              Icon(Icons.lightbulb_rounded, size: 18, color: AppColors.tealPrimary),
               SizedBox(width: 8),
               Text(
-                'Try it yourself',
+                '💡 Key Idea',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.2,
@@ -769,59 +824,67 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Test these preset circuit conditions to see how the system behaves:',
-            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildPresetChip(
-                label: 'High Voltage Glow (24V, 50Ω)',
-                onTap: () => setState(() {
-                  _varAValue = 24.0;
-                  _varBValue = 50.0;
-                }),
-              ),
-              _buildPresetChip(
-                label: 'Standard (9V, 100Ω)',
-                onTap: () => setState(() {
-                  _varAValue = 9.0;
-                  _varBValue = 100.0;
-                }),
-              ),
-              _buildPresetChip(
-                label: 'High Resistance Dim (5V, 400Ω)',
-                onTap: () => setState(() {
-                  _varAValue = 5.0;
-                  _varBValue = 400.0;
-                }),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            _whyWorksText,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.45,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPresetChip({required String label, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceSecondary,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.cardBorder),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        ),
+  Widget _buildExperimentationCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.help_outline_rounded, size: 18, color: AppColors.orangePrimary),
+              SizedBox(width: 8),
+              Text(
+                'Experimentation Insight',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _experimentQuestion,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.orangePrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _experimentAnswer,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }

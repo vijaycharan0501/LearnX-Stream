@@ -284,17 +284,11 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. CONCEPT INTRODUCTION: Title, Subtitle, "What is [topic]?" Explanation
+                // 1. CONCEPT INTRODUCTION: Title, Subtitle, and "What is [topic]?"
                 _buildHeaderCard(aiChosenDisplayName, activeDisplayName),
                 const SizedBox(height: 18),
 
-                // 1b. FLEXIBLE ANSWER SECTIONS (if provided dynamically by Gemini)
-                if (widget.analysis.answer != null && widget.analysis.answer!.sections.isNotEmpty) ...[
-                  ..._buildDynamicAnswerSections(),
-                  const SizedBox(height: 4),
-                ],
-
-                // 2. VISUAL EXPLANATION: Active Interactive Visualization
+                // 2. DOMINANT VISUAL EXPLANATION (65-75% visual prominence)
                 if (widget.analysis.isVisualizationEnabled) ...[
                   _buildVisualSectionHeader(),
                   VisualizationRenderer(
@@ -304,7 +298,11 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                   const SizedBox(height: 18),
                 ],
 
-                // 2b. WHAT YOU ARE SEEING: Explanation of the visual model
+                // 3. KEY IDEA / KEY TAKEAWAY: "💡 Key Idea"
+                _buildKeyIdeaCard(),
+                const SizedBox(height: 14),
+
+                // 4. WHAT YOU ARE SEEING (if available and distinct)
                 if (widget.analysis.visualExplanation != null &&
                     widget.analysis.visualExplanation!.trim().isNotEmpty &&
                     widget.analysis.visualExplanation!.trim() != widget.analysis.effectiveKeyIdea) ...[
@@ -312,18 +310,20 @@ class _SmartExplainScreenState extends State<SmartExplainScreen> {
                   const SizedBox(height: 14),
                 ],
 
-                // 3. KEY IDEA / KEY TAKEAWAY: "💡 Key Idea"
-                _buildKeyIdeaCard(),
-                const SizedBox(height: 14),
+                // 5. FLEXIBLE DEEP-DIVE SECTIONS (if provided dynamically by Gemini)
+                if (widget.analysis.answer != null && widget.analysis.answer!.sections.isNotEmpty) ...[
+                  ..._buildDynamicAnswerSections(),
+                  const SizedBox(height: 4),
+                ],
 
-                // 4. REAL-WORLD CONNECTION: "🌍 Where you see this" (if available)
+                // 6. REAL-WORLD CONNECTION: "🌍 Where you see this" (if available)
                 if (widget.analysis.realWorldConnection != null &&
                     widget.analysis.realWorldConnection!.trim().isNotEmpty) ...[
                   _buildRealWorldCard(),
                   const SizedBox(height: 14),
                 ],
 
-                // 5. QUICK CHECK: Interactive Concept Check Question
+                // 7. QUICK CHECK: Interactive Concept Check Question
                 if (quickCheck != null && quickCheck.enabled && quickCheck.options.isNotEmpty) ...[
                   _QuickCheckCard(quickCheck: quickCheck),
                   const SizedBox(height: 18),
