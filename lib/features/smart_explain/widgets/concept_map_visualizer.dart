@@ -235,58 +235,60 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header instruction
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
-                  const Flexible(
-                    child: Text(
-                      'Interactive Concept Hierarchy',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  const Text(
+                    'Interactive Concept Hierarchy',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 8),
-
-                  // Pillar Progression Dots (● ● ● ○ ○)
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(_nodes.length, (i) {
-                      final isActive = i == _selectedNodeIndex;
-                      final isDone = i < _selectedNodeIndex;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                        width: isActive ? 16 : 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? AppColors.purplePrimary
-                              : (isDone ? AppColors.purplePrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.purpleLight,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Pillar ${_selectedNodeIndex + 1} of ${_nodes.length}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.purplePrimary,
+                    children: [
+                      // Pillar Progression Dots (● ● ● ○ ○)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(_nodes.length, (i) {
+                          final isActive = i == _selectedNodeIndex;
+                          final isDone = i < _selectedNodeIndex;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                            width: isActive ? 16 : 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? AppColors.purplePrimary
+                                  : (isDone ? AppColors.purplePrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.purpleLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Pillar ${_selectedNodeIndex + 1} of ${_nodes.length}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.purplePrimary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -384,20 +386,26 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
                               ]
                             : null,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(_resolveIcon(node.iconName), size: 16, color: color),
-                          const SizedBox(width: 6),
-                          Text(
-                            node.title,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                              color: isSelected ? color : AppColors.textPrimary,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 340),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_resolveIcon(node.iconName), size: 16, color: color),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                node.title,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                                  color: isSelected ? color : AppColors.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -513,75 +521,166 @@ class _ConceptMapVisualizerState extends State<ConceptMapVisualizer> {
     final isFirst = curIdx == 0;
     final isLast = curIdx == _nodes.length - 1;
 
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: isFirst ? null : _prevPillar,
-            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-            label: const Text('Previous', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: const BorderSide(color: AppColors.cardBorder),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: AppColors.surface,
-              disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton.filledTonal(
-          tooltip: _isPlaying ? 'Pause Tour' : 'Play Tour',
-          onPressed: _togglePlay,
-          icon: Icon(
-            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            size: 20,
-            color: AppColors.purplePrimary,
-          ),
-          style: IconButton.styleFrom(
-            padding: const EdgeInsets.all(12),
-            backgroundColor: _isPlaying ? AppColors.purpleLight : AppColors.surfaceSecondary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: _isPlaying ? AppColors.purplePrimary : AppColors.cardBorder,
-                width: _isPlaying ? 1.5 : 1.0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 560;
+
+        if (isCompact) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: isFirst ? null : _prevPillar,
+                      icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                      label: const Text('Previous', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                        side: const BorderSide(color: AppColors.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppColors.surface,
+                        disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _restart,
+                      icon: const Icon(Icons.replay_rounded, size: 14),
+                      label: const Text('Restart', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                        side: const BorderSide(color: AppColors.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppColors.surfaceSecondary,
+                        foregroundColor: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: _isPlaying ? 'Pause Tour' : 'Play Tour',
+                    onPressed: _togglePlay,
+                    icon: Icon(
+                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      size: 18,
+                      color: AppColors.purplePrimary,
+                    ),
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(10),
+                      backgroundColor: _isPlaying ? AppColors.purpleLight : AppColors.surfaceSecondary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                          color: _isPlaying ? AppColors.purplePrimary : AppColors.cardBorder,
+                          width: _isPlaying ? 1.5 : 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isLast ? _restart : () => _nextPillar(),
+                      icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 14),
+                      label: Text(
+                        isLast ? 'Restart' : 'Next',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.purplePrimary,
+                        foregroundColor: AppColors.textLight,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: isFirst ? null : _prevPillar,
+                icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                label: const Text('Previous', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColors.surface,
+                  disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: _restart,
-          icon: const Icon(Icons.replay_rounded, size: 16),
-          label: const Text('Restart', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-            side: const BorderSide(color: AppColors.cardBorder),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: AppColors.surfaceSecondary,
-            foregroundColor: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: isLast ? _restart : () => _nextPillar(),
-            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 16),
-            label: Text(
-              isLast ? 'Restart' : 'Next',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            const SizedBox(width: 6),
+            IconButton.filledTonal(
+              tooltip: _isPlaying ? 'Pause Tour' : 'Play Tour',
+              onPressed: _togglePlay,
+              icon: Icon(
+                _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: 18,
+                color: AppColors.purplePrimary,
+              ),
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.all(10),
+                backgroundColor: _isPlaying ? AppColors.purpleLight : AppColors.surfaceSecondary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: _isPlaying ? AppColors.purplePrimary : AppColors.cardBorder,
+                    width: _isPlaying ? 1.5 : 1.0,
+                  ),
+                ),
+              ),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.purplePrimary,
-              foregroundColor: AppColors.textLight,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _restart,
+                icon: const Icon(Icons.replay_rounded, size: 14),
+                label: const Text('Restart', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColors.surfaceSecondary,
+                  foregroundColor: AppColors.textPrimary,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(width: 6),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: isLast ? _restart : () => _nextPillar(),
+                icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 14),
+                label: Text(
+                  isLast ? 'Restart' : 'Next',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.purplePrimary,
+                  foregroundColor: AppColors.textLight,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

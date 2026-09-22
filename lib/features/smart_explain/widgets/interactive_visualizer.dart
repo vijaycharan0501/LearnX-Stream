@@ -305,7 +305,7 @@ class _InteractiveVisualizerState extends State<InteractiveVisualizer> {
                       icon: const Icon(Icons.arrow_back_rounded, size: 16),
                       label: const Text('Previous'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
                         side: const BorderSide(color: AppColors.cardBorder),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -314,7 +314,7 @@ class _InteractiveVisualizerState extends State<InteractiveVisualizer> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   if (isLastStep)
                     Expanded(
                       child: ElevatedButton.icon(
@@ -324,7 +324,7 @@ class _InteractiveVisualizerState extends State<InteractiveVisualizer> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.tealPrimary,
                           foregroundColor: AppColors.textLight,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -341,7 +341,7 @@ class _InteractiveVisualizerState extends State<InteractiveVisualizer> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.tealPrimary,
                           foregroundColor: AppColors.textLight,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

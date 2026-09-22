@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../features/material_input/models/material_analysis_models.dart';
 
@@ -52,6 +52,7 @@ class ApiService {
     });
 
     try {
+      debugPrint('[ApiService] Requesting POST $endpoint with topic: "$effectiveTitle"');
       final response = await _client
           .post(
             endpoint,
@@ -63,15 +64,19 @@ class ApiService {
           )
           .timeout(timeout);
 
+      debugPrint('[ApiService] Received HTTP ${response.statusCode} from $endpoint');
+
       if (response.statusCode == 200) {
         try {
           final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes));
           if (decoded is Map<String, dynamic>) {
             return MaterialAnalysisResponse.fromJson(decoded);
           } else {
+            debugPrint('[ApiService] Invalid response format received (not a JSON map)');
             throw const ApiException('Invalid response format received from server.');
           }
         } on FormatException catch (e) {
+          debugPrint('[ApiService] JSON decode failed: $e. Body: ${response.body}');
           throw ApiException(
             'Failed to parse analysis response from server.',
             statusCode: response.statusCode,
@@ -79,6 +84,7 @@ class ApiService {
           );
         }
       } else {
+        debugPrint('[ApiService] Error HTTP ${response.statusCode}. Body: ${response.body}');
         // Attempt to extract error detail from JSON response
         String errorMessage = 'Server returned error status (${response.statusCode}).';
         try {
@@ -104,16 +110,13 @@ class ApiService {
         );
       }
     } on TimeoutException catch (e) {
+      debugPrint('[ApiService] TimeoutException for $endpoint: $e');
       throw ApiException(
         'Connection timed out. Please verify that the backend server is responsive.',
         originalError: e,
       );
-    } on SocketException catch (e) {
-      throw ApiException(
-        'Cannot connect to backend server at $baseUrl. Please verify the server is running.',
-        originalError: e,
-      );
     } on http.ClientException catch (e) {
+      debugPrint('[ApiService] http.ClientException for $endpoint: $e');
       throw ApiException(
         'Network error: Unable to reach $baseUrl. Check your connection or CORS settings.',
         originalError: e,
@@ -121,6 +124,13 @@ class ApiService {
     } on ApiException {
       rethrow;
     } catch (e) {
+      debugPrint('[ApiService] ${e.runtimeType} for $endpoint: $e');
+      if (e.toString().contains('SocketException')) {
+        throw ApiException(
+          'Cannot connect to backend server at $baseUrl. Please verify the server is running.',
+          originalError: e,
+        );
+      }
       throw ApiException(
         'An unexpected error occurred: ${e.toString()}',
         originalError: e,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'features/splash/screens/splash_screen.dart';
+import 'core/theme/theme_controller.dart';
+import 'features/navigation/main_nav_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,11 +18,18 @@ class LearnXStreamApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'LearnX STREAM',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: home ?? const SplashScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.themeModeNotifier,
+      builder: (context, currentMode, _) {
+        return MaterialApp(
+          title: 'LearnX STREAM',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: currentMode,
+          home: home ?? const MainNavScreen(),
+        );
+      },
     );
   }
 }

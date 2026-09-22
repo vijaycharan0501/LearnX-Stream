@@ -240,12 +240,15 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
 
   Widget _buildHeaderRow(VisualizationStep step) {
     final totalSteps = step.totalSteps > 0 ? step.totalSteps : _model.steps.length;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         if (_target != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.tealLight,
               borderRadius: BorderRadius.circular(12),
@@ -254,12 +257,12 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.radar_rounded, size: 16, color: AppColors.tealPrimary),
-                const SizedBox(width: 6),
+                const Icon(Icons.radar_rounded, size: 15, color: AppColors.tealPrimary),
+                const SizedBox(width: 5),
                 Text(
                   'Target: $_target',
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: AppColors.tealPrimary,
                   ),
@@ -278,30 +281,30 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
             final isDone = i < _currentStepIndex;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 2.5),
-              width: isActive ? 16 : 7,
-              height: 7,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              width: isActive ? 14 : 6,
+              height: 6,
               decoration: BoxDecoration(
                 color: isActive
                     ? AppColors.tealPrimary
                     : (isDone ? AppColors.tealPrimary.withValues(alpha: 0.45) : AppColors.cardBorder),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
               ),
             );
           }),
         ),
 
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: AppColors.blueLight,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.blueBorder),
           ),
           child: Text(
             'Step ${step.stepNumber} of $totalSteps',
             style: const TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
               color: AppColors.bluePrimary,
               letterSpacing: 0.2,
@@ -1000,83 +1003,185 @@ class _AlgorithmVisualizationState extends State<AlgorithmVisualization>
   }
 
   Widget _buildControlsRow(bool isFirstStep, bool isLastStep) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: isFirstStep ? null : _goToPreviousStep,
-            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-            label: const Text(
-              'Previous',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            ),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: const BorderSide(color: AppColors.cardBorder),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: AppColors.surface,
-              disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton.filledTonal(
-          tooltip: _isPlaying ? 'Pause' : 'Play',
-          onPressed: _togglePlay,
-          icon: Icon(
-            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            size: 20,
-            color: AppColors.tealPrimary,
-          ),
-          style: IconButton.styleFrom(
-            padding: const EdgeInsets.all(12),
-            backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
-                width: _isPlaying ? 1.5 : 1.0,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 560;
+
+        if (isCompact) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: isFirstStep ? null : _goToPreviousStep,
+                      icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                      label: const Text(
+                        'Previous',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                        side: BorderSide(color: AppColors.getCardBorder(isDark)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppColors.getSurface(isDark),
+                        foregroundColor: AppColors.getTextPrimary(isDark),
+                        disabledForegroundColor: AppColors.getTextMuted(isDark).withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _restart,
+                      icon: const Icon(Icons.replay_rounded, size: 14),
+                      label: const Text(
+                        'Restart',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                        side: const BorderSide(color: AppColors.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppColors.getSurfaceSecondary(isDark),
+                        foregroundColor: AppColors.getTextPrimary(isDark),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: _isPlaying ? 'Pause' : 'Play',
+                    onPressed: _togglePlay,
+                    icon: Icon(
+                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      size: 18,
+                      color: AppColors.tealPrimary,
+                    ),
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(10),
+                      backgroundColor: _isPlaying ? AppColors.getTealLight(isDark) : AppColors.getSurfaceSecondary(isDark),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                          color: _isPlaying ? AppColors.tealPrimary : AppColors.getCardBorder(isDark),
+                          width: _isPlaying ? 1.5 : 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isLastStep ? null : _goToNextStep,
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                      label: const Text(
+                        'Next',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.tealPrimary,
+                        foregroundColor: AppColors.textLight,
+                        disabledBackgroundColor: AppColors.tealLight.withValues(alpha: 0.5),
+                        disabledForegroundColor: AppColors.tealPrimary.withValues(alpha: 0.4),
+                        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: isFirstStep ? null : _goToPreviousStep,
+                icon: const Icon(Icons.arrow_back_rounded, size: 15),
+                label: const Text(
+                  'Previous',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  side: BorderSide(color: AppColors.getCardBorder(isDark)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColors.getSurface(isDark),
+                  foregroundColor: AppColors.getTextPrimary(isDark),
+                  disabledForegroundColor: AppColors.getTextMuted(isDark).withValues(alpha: 0.4),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: _restart,
-          icon: const Icon(Icons.replay_rounded, size: 16),
-          label: const Text(
-            'Restart',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-          ),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-            side: const BorderSide(color: AppColors.cardBorder),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: AppColors.surfaceSecondary,
-            foregroundColor: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: isLastStep ? null : _goToNextStep,
-            icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-            label: const Text(
-              'Next',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            const SizedBox(width: 6),
+            IconButton.filledTonal(
+              tooltip: _isPlaying ? 'Pause' : 'Play',
+              onPressed: _togglePlay,
+              icon: Icon(
+                _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: 18,
+                color: AppColors.tealPrimary,
+              ),
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.all(10),
+                backgroundColor: _isPlaying ? AppColors.getTealLight(isDark) : AppColors.getSurfaceSecondary(isDark),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: _isPlaying ? AppColors.tealPrimary : AppColors.getCardBorder(isDark),
+                    width: _isPlaying ? 1.5 : 1.0,
+                  ),
+                ),
+              ),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.tealPrimary,
-              foregroundColor: AppColors.textLight,
-              disabledBackgroundColor: AppColors.tealLight.withValues(alpha: 0.5),
-              disabledForegroundColor: AppColors.tealPrimary.withValues(alpha: 0.4),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _restart,
+                icon: const Icon(Icons.replay_rounded, size: 15),
+                label: const Text(
+                  'Restart',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColors.getSurfaceSecondary(isDark),
+                  foregroundColor: AppColors.getTextPrimary(isDark),
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(width: 6),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: isLastStep ? null : _goToNextStep,
+                icon: const Icon(Icons.arrow_forward_rounded, size: 15),
+                label: const Text(
+                  'Next',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.tealPrimary,
+                  foregroundColor: AppColors.textLight,
+                  disabledBackgroundColor: AppColors.tealLight.withValues(alpha: 0.5),
+                  disabledForegroundColor: AppColors.tealPrimary.withValues(alpha: 0.4),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

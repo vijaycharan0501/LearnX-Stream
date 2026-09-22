@@ -328,36 +328,38 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
   }
 
   Widget _buildHeader(double currentA) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 6,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.topic.isNotEmpty ? widget.topic : "Ohm's Law",
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.topic.isNotEmpty ? widget.topic : "Ohm's Law",
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
               ),
-              const SizedBox(height: 2),
-              Text(
-                '$_formula  •  $_secondaryFormula',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.tealPrimary,
-                ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$_formula  •  $_secondaryFormula',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.tealPrimary,
               ),
-            ],
-          ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -672,21 +674,20 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              Flexible(
-                child: Text(
-                  s['title'] as String,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.tealPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                s['title'] as String,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.tealPrimary,
                 ),
               ),
-              const SizedBox(width: 8),
               // Dots
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -725,75 +726,166 @@ class _SimulationVisualizerState extends State<SimulationVisualizer>
     final isFirst = _currentScenarioIndex == 0;
     final isLast = _currentScenarioIndex == _demoScenarios.length - 1;
 
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: isFirst ? null : _prevScenario,
-            icon: const Icon(Icons.arrow_back_rounded, size: 15),
-            label: const Text('Previous', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              side: const BorderSide(color: AppColors.cardBorder),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: AppColors.surface,
-              disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
-            ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        IconButton.filledTonal(
-          tooltip: _isPlaying ? 'Pause Demo' : 'Play Demo',
-          onPressed: _toggleDemo,
-          icon: Icon(
-            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            size: 18,
-            color: AppColors.tealPrimary,
-          ),
-          style: IconButton.styleFrom(
-            padding: const EdgeInsets.all(10),
-            backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
-                width: _isPlaying ? 1.5 : 1.0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 560;
+
+        if (isCompact) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: isFirst ? null : _prevScenario,
+                      icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                      label: const Text('Previous', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                        side: const BorderSide(color: AppColors.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppColors.surface,
+                        disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _restartDemo,
+                      icon: const Icon(Icons.replay_rounded, size: 14),
+                      label: const Text('Restart', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                        side: const BorderSide(color: AppColors.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppColors.surfaceSecondary,
+                        foregroundColor: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: _isPlaying ? 'Pause Demo' : 'Play Demo',
+                    onPressed: _toggleDemo,
+                    icon: Icon(
+                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      size: 18,
+                      color: AppColors.tealPrimary,
+                    ),
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(10),
+                      backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                          color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
+                          width: _isPlaying ? 1.5 : 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: isLast ? _restartDemo : () => _nextScenario(),
+                      icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 14),
+                      label: Text(
+                        isLast ? 'Restart' : 'Next',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.tealPrimary,
+                        foregroundColor: AppColors.textLight,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: isFirst ? null : _prevScenario,
+                icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                label: const Text('Previous', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColors.surface,
+                  disabledForegroundColor: AppColors.textMuted.withValues(alpha: 0.4),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        OutlinedButton.icon(
-          onPressed: _restartDemo,
-          icon: const Icon(Icons.replay_rounded, size: 15),
-          label: const Text('Restart', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
-            side: const BorderSide(color: AppColors.cardBorder),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: AppColors.surfaceSecondary,
-            foregroundColor: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: isLast ? _restartDemo : () => _nextScenario(),
-            icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 15),
-            label: Text(
-              isLast ? 'Restart' : 'Next',
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+            const SizedBox(width: 6),
+            IconButton.filledTonal(
+              tooltip: _isPlaying ? 'Pause Demo' : 'Play Demo',
+              onPressed: _toggleDemo,
+              icon: Icon(
+                _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: 18,
+                color: AppColors.tealPrimary,
+              ),
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.all(10),
+                backgroundColor: _isPlaying ? AppColors.tealLight : AppColors.surfaceSecondary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: _isPlaying ? AppColors.tealPrimary : AppColors.cardBorder,
+                    width: _isPlaying ? 1.5 : 1.0,
+                  ),
+                ),
+              ),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.tealPrimary,
-              foregroundColor: AppColors.textLight,
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _restartDemo,
+                icon: const Icon(Icons.replay_rounded, size: 14),
+                label: const Text('Restart', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColors.surfaceSecondary,
+                  foregroundColor: AppColors.textPrimary,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(width: 6),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: isLast ? _restartDemo : () => _nextScenario(),
+                icon: Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 14),
+                label: Text(
+                  isLast ? 'Restart' : 'Next',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.tealPrimary,
+                  foregroundColor: AppColors.textLight,
+                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

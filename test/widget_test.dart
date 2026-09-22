@@ -21,7 +21,9 @@ import 'package:learnx_stream/features/smart_explain/widgets/workflow_visualizer
 import 'package:learnx_stream/features/smart_explain/widgets/simple_binary_search_view.dart';
 import 'package:learnx_stream/features/smart_explain/widgets/visualization_renderer.dart';
 import 'package:learnx_stream/features/material_input/widgets/topic_input_view.dart';
+import 'package:learnx_stream/features/home/screens/home_screen.dart';
 import 'package:learnx_stream/features/splash/screens/splash_screen.dart';
+import 'package:learnx_stream/main.dart';
 
 void main() {
   const sampleBinarySearchJson = {
@@ -857,6 +859,7 @@ void main() {
       expect(find.text('Showing: Guided Chat'), findsOneWidget);
       // Verify topic-aware Guided Chat for Binary Search
       expect(find.textContaining('Why must the array be sorted?'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     });
   });
 
@@ -1309,7 +1312,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Correct! Recommendation systems analyze user behavior to predict choices.'), findsOneWidget);
-      expect(find.text('Revisit Flow'), findsOneWidget);
+      expect(find.text('Revisit'), findsOneWidget);
     });
 
     testWidgets('VisualizationRenderer gracefully falls back to guided_chat for unsupported types', (
@@ -2089,7 +2092,510 @@ void main() {
       expect(find.text("Condensation & Precipitation"), findsOneWidget);
       expect(find.text("Key Idea"), findsOneWidget);
     });
+
+    testWidgets('LearnX STREAM - Clean Boot & Simplified Home Screen UI Verification', (WidgetTester tester) async {
+      await tester.pumpWidget(const LearnXStreamApp());
+      await tester.pumpAndSettle();
+
+      // Verify Brand Title
+      expect(find.text('LEARNX'), findsOneWidget);
+      expect(find.text('STREAM'), findsOneWidget);
+
+      // Verify Tagline
+      expect(find.text('Turn questions into understanding.'), findsOneWidget);
+
+      // Verify "Try asking" label & 3 Preset Suggestion Chips
+      expect(find.text('Try asking'), findsOneWidget);
+      expect(find.text('Explain photosynthesis'), findsWidgets);
+      expect(find.text('How does binary search work?'), findsWidgets);
+      expect(find.text("Explain Ohm's Law"), findsWidgets);
+
+      // Verify Compact Input Options Row
+      expect(find.text('Add material'), findsOneWidget);
+      expect(find.text('Voice'), findsOneWidget);
+
+      // Verify Recent Questions Section
+      expect(find.text('Recent Questions'), findsOneWidget);
+      expect(find.text('Photosynthesis'), findsWidgets);
+      expect(find.text('Binary Search'), findsWidgets);
+      expect(find.text("Ohm's Law"), findsWidgets);
+
+      // Verify Navigation items
+      expect(find.text('Home'), findsWidgets);
+      expect(find.text('Learning'), findsWidgets);
+      expect(find.text('Profile'), findsWidgets);
+
+      // Tap "Add material" to verify bottom sheet
+      await tester.tap(find.text('Add material').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add Study Material'), findsOneWidget);
+      expect(find.text('Scan Document / Page'), findsOneWidget);
+      expect(find.text('Upload PDF / Document'), findsOneWidget);
+
+      // Dismiss modal
+      await tester.tap(find.text('Scan Document / Page'));
+      await tester.pumpAndSettle();
+
+      // Confirms navigation to Material Input
+      expect(find.text('Study Material Input'), findsOneWidget);
+    });
+
+    testWidgets('LearnX STREAM - ChatGPT-Style Single Workspace Q&A + Visualization Concept Flow', (WidgetTester tester) async {
+      final mockClient = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        final title = body['title']?.toString().toLowerCase() ?? '';
+
+        if (title.contains('photosynthesis')) {
+          return http.Response(
+            jsonEncode({
+              'topic': 'Photosynthesis',
+              'summary': 'Photosynthesis is the biological process by which green plants convert light energy into chemical energy stored in glucose.',
+              'difficulty': 'beginner',
+              'visualization_type': 'process',
+              'visualization_display_name': 'Process Workflow',
+              'key_takeaway': 'Plants use sunlight, water, and carbon dioxide to produce oxygen and sugar.',
+              'answer': {
+                'summary': 'Photosynthesis is the biological process by which green plants convert light energy into chemical energy.',
+                'sections': [
+                  {
+                    'heading': 'How it works',
+                    'content': '1. Light absorption: Chlorophyll captures solar photons in chloroplasts.\n2. Reactant intake: Roots absorb H₂O and leaves absorb CO₂.\n3. Transformation: Enzymes synthesize glucose and release O₂.',
+                  },
+                  {
+                    'heading': 'Important idea',
+                    'content': 'Photosynthesis is the foundation of Earth’s food chain and atmospheric oxygen.',
+                  }
+                ],
+              },
+              'concepts': [
+                {'name': 'Chloroplast', 'type': 'organelle', 'importance': 'high'},
+                {'name': 'Chlorophyll', 'type': 'pigment', 'importance': 'high'},
+                {'name': 'Calvin Cycle', 'type': 'biochemical_cycle', 'importance': 'medium'},
+              ],
+              'visualization_data': {
+                'topic': 'Photosynthesis',
+                'stages': [
+                  {
+                    'stage_number': 1,
+                    'title': '1. Light Energy Absorption',
+                    'subtitle': 'Photons excite chlorophyll pigments',
+                    'description': 'Solar light rays strike chlorophyll pigments, energizing electrons to initiate photosynthesis.',
+                    'from_actor': 'Sunlight',
+                    'to_actor': 'Leaf Chloroplast',
+                    'packet_label': 'Solar Photons',
+                    'state_label': 'LIGHT_ABSORPTION',
+                  },
+                  {
+                    'stage_number': 2,
+                    'title': '2. Water & CO₂ Intake',
+                    'subtitle': 'Roots absorb H₂O, stomata absorb CO₂',
+                    'description': 'Water molecules and carbon dioxide enter the leaf thylakoid membranes.',
+                    'from_actor': 'H₂O & CO₂',
+                    'to_actor': 'Thylakoid Membrane',
+                    'packet_label': 'Reactants',
+                    'state_label': 'REACTANT_INTAKE',
+                  },
+                  {
+                    'stage_number': 3,
+                    'title': '3. Chemical Transformation',
+                    'subtitle': 'Calvin Cycle fixes carbon into glucose',
+                    'description': 'Enzymes and chemical energy synthesize glucose sugars and release oxygen.',
+                    'from_actor': 'Core',
+                    'to_actor': 'Stroma',
+                    'packet_label': 'Glucose + O₂',
+                    'state_label': 'TRANSFORMATION',
+                  }
+                ],
+              }
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        } else if (title.contains('ohm')) {
+          return http.Response(
+            jsonEncode({
+              'topic': "Ohm's Law",
+              'summary': "Ohm's Law states that the current flowing through a conductor between two points is directly proportional to voltage and inversely proportional to resistance: V = I × R.",
+              'difficulty': 'beginner',
+              'visualization_type': 'simulation',
+              'visualization_display_name': 'Interactive Simulation',
+              'key_takeaway': 'Voltage pushes current; resistance restricts it.',
+              'answer': {
+                'summary': "Ohm's Law defines the fundamental linear relationship between Voltage (V), Current (I), and Resistance (R).",
+                'sections': [
+                  {
+                    'heading': 'How it works',
+                    'content': '• Voltage (V) is the electromotive pressure in Volts.\n• Current (I) is the flow rate of electrons in Amperes.\n• Resistance (R) is the opposition to flow in Ohms.',
+                  },
+                  {
+                    'heading': 'Formula relationship',
+                    'content': 'I = V / R. Doubling voltage doubles current. Doubling resistance cuts current in half.',
+                  }
+                ],
+              },
+              'concepts': [
+                {'name': 'Voltage', 'type': 'potential', 'importance': 'high'},
+                {'name': 'Current', 'type': 'flow', 'importance': 'high'},
+                {'name': 'Resistance', 'type': 'load', 'importance': 'high'},
+              ],
+              'visualization_data': {
+                'topic': "Ohm's Law",
+                'formula': 'I = V / R',
+                'var_a_label': 'Voltage (V)',
+                'var_a_unit': 'V',
+                'var_a_value': 12.0,
+                'var_a_min': 1.0,
+                'var_a_max': 24.0,
+                'var_b_label': 'Resistance (R)',
+                'var_b_unit': 'Ω',
+                'var_b_value': 4.0,
+                'var_b_min': 1.0,
+                'var_b_max': 20.0,
+                'output_label': 'Current (I)',
+                'output_unit': 'A',
+                'why_this_works': 'Current is proportional to Voltage and inversely proportional to Resistance.',
+              }
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        } else {
+          return http.Response(
+            jsonEncode(sampleBinarySearchJson),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+      });
+
+      final mockApiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(apiService: mockApiService),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap preset suggestion "How does binary search work?"
+      await tester.tap(find.text('How does binary search work?').first);
+      await tester.pumpAndSettle(); // Finish response
+
+      // Answer should appear directly on the SAME Home screen!
+      expect(find.text('LEARNX AI'), findsOneWidget);
+      expect(find.text('How does binary search work?'), findsWidgets);
+      expect(find.text('✨ Visualization Concept'), findsOneWidget);
+      expect(find.text('See this concept visually'), findsOneWidget);
+
+      // Tap "✨ Visualization Concept" to open large interactive visualization
+      await tester.ensureVisible(find.text('✨ Visualization Concept'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('✨ Visualization Concept'));
+      await tester.pumpAndSettle();
+
+      // Confirms visualization screen opened
+      expect(find.text('Binary Search'), findsWidgets);
+      expect(find.text('Back to answer'), findsWidgets);
+
+      // Tap "Back to answer" to return to the SAME workspace answer
+      await tester.tap(find.text('Back to answer').first);
+      await tester.pumpAndSettle();
+
+      // Confirms we returned to the Home workspace with the answer intact
+      expect(find.text('LEARNX AI'), findsOneWidget);
+      expect(find.text('How does binary search work?'), findsWidgets);
+      expect(find.text('✨ Visualization Concept'), findsOneWidget);
+    });
+
+    // =========================================================================
+    // TEST 1, 2, 3: Photosynthesis Flow Verification
+    // =========================================================================
+    testWidgets('TEST 1 & 2 & 3: Normal Question "Explain photosynthesis" -> Same-Page Answer -> Visualization Concept -> Photosynthesis Visual -> Back to Answer', (
+      WidgetTester tester,
+    ) async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'topic': 'Photosynthesis',
+            'summary': 'Photosynthesis is the process by which green plants use sunlight to synthesize nutrients from CO₂ and H₂O.',
+            'difficulty': 'beginner',
+            'visualization_type': 'process',
+            'visualization_display_name': 'Process Workflow',
+            'key_takeaway': 'Plants turn solar energy, water, and CO₂ into oxygen and sugar.',
+            'answer': {
+              'summary': 'Photosynthesis is the process by which green plants use sunlight to synthesize nutrients from CO₂ and H₂O.',
+              'sections': [
+                {
+                  'heading': 'How it works',
+                  'content': 'Chlorophyll captures photons and converts water and CO₂ into carbohydrates and oxygen.',
+                },
+                {
+                  'heading': 'Important idea',
+                  'content': 'Solar energy drives chemical synthesis sustaining life on Earth.',
+                }
+              ],
+            },
+            'concepts': [
+              {'name': 'Chloroplast', 'type': 'structure', 'importance': 'high'},
+              {'name': 'Chlorophyll', 'type': 'pigment', 'importance': 'high'},
+            ],
+            'visualization_data': {
+              'topic': 'Photosynthesis',
+              'stages': [
+                {
+                  'stage_number': 1,
+                  'title': '1. Light Energy Absorption',
+                  'subtitle': 'Photons excite chloroplast chlorophyll',
+                  'description': 'Solar light rays strike chlorophyll pigments, energizing electrons to initiate photosynthesis.',
+                  'from_actor': 'Sunlight',
+                  'to_actor': 'Leaf Chloroplast',
+                  'packet_label': 'Solar Photons',
+                  'state_label': 'LIGHT_ABSORPTION',
+                }
+              ]
+            }
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final mockApiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(apiService: mockApiService),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // TEST 1: Ask "Explain photosynthesis" via top chip or search bar
+      await tester.tap(find.text('Explain photosynthesis').first);
+      await tester.pumpAndSettle();
+
+      // Verify AI answer appears directly on the SAME Home screen
+      expect(find.text('LEARNX AI'), findsOneWidget);
+      expect(find.text('Photosynthesis is the process by which green plants use sunlight to synthesize nutrients from CO₂ and H₂O.'), findsOneWidget);
+      expect(find.text('How it works'), findsOneWidget);
+      expect(find.text('Important idea'), findsOneWidget);
+      expect(find.text('✨ Visualization Concept'), findsOneWidget);
+
+      // TEST 2: Click [ ✨ Visualization Concept ]
+      await tester.ensureVisible(find.text('✨ Visualization Concept'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('✨ Visualization Concept'));
+      await tester.pumpAndSettle();
+
+      // Verify Photosynthesis Visualization is opened
+      expect(find.text('Photosynthesis'), findsWidgets);
+      expect(find.text('🌿 LEAF / CHLOROPLAST'), findsWidgets);
+      expect(find.text('Sunlight'), findsWidgets);
+      expect(find.text('CO₂'), findsWidgets);
+      expect(find.text('H₂O'), findsWidgets);
+      expect(find.text("WHAT'S HAPPENING?"), findsOneWidget);
+      expect(find.text('Previous'), findsOneWidget);
+      expect(find.text('Restart'), findsWidgets);
+
+      // TEST 3: Click < Back to answer
+      await tester.tap(find.text('Back to answer').first);
+      await tester.pumpAndSettle();
+
+      // Verify user returns to the SAME AI answer without re-generating
+      expect(find.text('LEARNX AI'), findsOneWidget);
+      expect(find.text('How it works'), findsOneWidget);
+      expect(find.text('✨ Visualization Concept'), findsOneWidget);
+    });
+
+    // =========================================================================
+    // TEST 5: Ohm's Law Flow Verification
+    // =========================================================================
+    testWidgets('TEST 5: Question "Explain Ohm\'s Law" -> Same-Page Answer -> Visualization Concept -> Ohm\'s Law Simulation (V, I, R) -> Back to Answer', (
+      WidgetTester tester,
+    ) async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'topic': "Ohm's Law",
+            'summary': "Ohm's Law expresses the proportional relationship between voltage, current, and resistance in electrical circuits: V = I × R.",
+            'difficulty': 'beginner',
+            'visualization_type': 'simulation',
+            'visualization_display_name': 'Interactive Simulation',
+            'key_takeaway': 'Current increases with voltage and decreases with resistance.',
+            'answer': {
+              'summary': "Ohm's Law expresses the proportional relationship between voltage, current, and resistance in electrical circuits.",
+              'sections': [
+                {
+                  'heading': 'How it works',
+                  'content': '• Voltage (V) pushes electrical charge.\n• Current (I) is the flow rate of charge.\n• Resistance (R) restricts the flow of charge.',
+                }
+              ],
+            },
+            'concepts': [
+              {'name': 'Voltage', 'type': 'variable', 'importance': 'high'},
+              {'name': 'Current', 'type': 'variable', 'importance': 'high'},
+              {'name': 'Resistance', 'type': 'variable', 'importance': 'high'},
+            ],
+            'visualization_data': {
+              'topic': "Ohm's Law",
+              'formula': 'I = V / R',
+              'var_a_label': 'Voltage (V)',
+              'var_a_unit': 'V',
+              'var_a_value': 12.0,
+              'var_a_min': 1.0,
+              'var_a_max': 24.0,
+              'var_b_label': 'Resistance (R)',
+              'var_b_unit': 'Ω',
+              'var_b_value': 4.0,
+              'var_b_min': 1.0,
+              'var_b_max': 20.0,
+              'output_label': 'Current (I)',
+              'output_unit': 'A',
+              'why_this_works': 'Current is directly proportional to voltage and inversely proportional to resistance.',
+            }
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final mockApiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(apiService: mockApiService),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Ask "Explain Ohm's Law"
+      await tester.tap(find.text("Explain Ohm's Law").first);
+      await tester.pumpAndSettle();
+
+      // Answer on same page
+      expect(find.text('LEARNX AI'), findsOneWidget);
+      expect(find.text('✨ Visualization Concept'), findsOneWidget);
+
+      // Open Visualization
+      await tester.ensureVisible(find.text('✨ Visualization Concept'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('✨ Visualization Concept'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify Ohm's Law Simulation components
+      expect(find.text("Ohm's Law"), findsWidgets);
+      expect(find.textContaining('Voltage Source'), findsWidgets);
+      expect(find.textContaining('Lightbulb Load'), findsWidgets);
+      expect(find.textContaining('Resistor Load'), findsWidgets);
+      expect(find.textContaining('I = V / R'), findsWidgets);
+
+      // Back to answer
+      await tester.tap(find.text('Back to answer').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('LEARNX AI'), findsOneWidget);
+    });
+
+    // =========================================================================
+    // TEST 6: ChatGPT-Like Multi-Turn Follow-Up Stream Verification
+    // =========================================================================
+    testWidgets('TEST 6: ChatGPT-Like Multi-Turn Stream allows consecutive questions in single workspace', (
+      WidgetTester tester,
+    ) async {
+      int queryCount = 0;
+      final mockClient = MockClient((request) async {
+        queryCount++;
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        final title = body['title']?.toString() ?? 'Topic $queryCount';
+
+        return http.Response(
+          jsonEncode({
+            'topic': title,
+            'summary': 'Detailed understanding of $title.',
+            'difficulty': 'beginner',
+            'visualization_type': 'algorithm',
+            'answer': {
+              'summary': 'Detailed understanding of $title.',
+              'sections': [
+                {'heading': 'Key point', 'content': 'Core insight about $title.'}
+              ]
+            },
+            'concepts': [],
+            'visualization_data': {}
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final mockApiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeScreen(apiService: mockApiService),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Turn 1: "Explain photosynthesis"
+      await tester.enterText(find.byType(TextField).first, 'Explain photosynthesis');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Explain photosynthesis'), findsWidgets);
+      expect(find.text('Detailed understanding of Explain photosynthesis.'), findsOneWidget);
+
+      // Turn 2: "What is chlorophyll?"
+      await tester.enterText(find.byType(TextField).first, 'What is chlorophyll?');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('What is chlorophyll?'), findsOneWidget);
+      expect(find.text('Detailed understanding of What is chlorophyll?.'), findsOneWidget);
+
+      // Turn 3: "Why is sunlight important?"
+      await tester.enterText(find.byType(TextField).first, 'Why is sunlight important?');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Why is sunlight important?'), findsOneWidget);
+      expect(find.text('Detailed understanding of Why is sunlight important?.'), findsOneWidget);
+
+      // Verify all 3 questions and 3 LEARNX AI answers coexist in the continuous workspace feed
+      expect(find.text('LEARNX AI'), findsNWidgets(3));
+      expect(find.text('✨ Visualization Concept'), findsNWidgets(3));
+    });
+
+    // =========================================================================
+    // HOME UI CHECK: No technical jargon on Home Screen
+    // =========================================================================
+    testWidgets('HOME UI CHECK: Home screen displays clean user-friendly branding without technical jargon', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: HomeScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Required clean user-facing elements
+      expect(find.text('LEARNX'), findsOneWidget);
+      expect(find.text('STREAM'), findsOneWidget);
+      expect(find.text('Turn questions into understanding.'), findsOneWidget);
+      expect(find.text('Try asking'), findsOneWidget);
+
+      // Must NOT show internal technical jargon
+      expect(find.text('Adaptive Modality Engine'), findsNothing);
+      expect(find.text('AI Pedagogical Engine'), findsNothing);
+      expect(find.text('Workflow'), findsNothing);
+      expect(find.text('LLM'), findsNothing);
+      expect(find.text('Gemini'), findsNothing);
+      expect(find.text('JSON'), findsNothing);
+    });
   });
 }
+
 
 

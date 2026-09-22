@@ -1,4 +1,8 @@
-import 'package:flutter/material.dart';
+import os
+
+file_path = r'c:\Users\vijay\OneDrive\Desktop\WebSites\LearnX Stream\Website LearnX stream\learnx_stream\lib\features\smart_explain\widgets\guided_chat_visualizer.dart'
+
+new_content = '''import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'topic_visualization_helper.dart';
 
@@ -553,3 +557,8 @@ class _SocraticStep {
     required this.feedback,
   });
 }
+'''
+
+with open(file_path, 'w', encoding='utf-8') as f:
+    f.write(new_content)
+print("Updated guided_chat_visualizer.dart successfully")
